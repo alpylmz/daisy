@@ -1,5 +1,6 @@
 import daisy.lang._
 import Real._
+import javax.security.sasl.RealmCallback
 
 
 
@@ -50,6 +51,7 @@ object Minv {
     // the second 3x3 block is the skew-symmetric matrix alphaSkew
     // the third 3x3 block is -alphaSkew
     // the fourth 3x3 block is inertia - alphaSkewSquare
+    /*
     def first_pass_inertia(
         m: Real,
         x_lever: Real,
@@ -105,6 +107,67 @@ object Minv {
         // res cannot be a vector or a matrix, so I am just putting one value here as a placeholder
         fi_1_1 + fi_2_2 + fi_3_3 + se_1_2 + se_1_3 + se_2_1 + se_2_3 + se_3_1 + se_3_2 + th_1_2 + th_1_3 + th_2_1 + th_2_3 + th_3_1 + th_3_2 + fo_1_1 + fo_1_2 + fo_1_3 + fo_2_1 + fo_2_2 + fo_2_3 + fo_3_1 + fo_3_2 + fo_3_3
     } ensuring(res => res +/- 1e-2)
+    */
+
+    def calculate_oMi_firstPass(
+        model_joint_p_rotation_1_1: Real, model_joint_p_rotation_1_2: Real, model_joint_p_rotation_1_3: Real,
+        model_joint_p_rotation_2_1: Real, model_joint_p_rotation_2_2: Real, model_joint_p_rotation_2_3: Real,
+        model_joint_p_rotation_3_1: Real, model_joint_p_rotation_3_2: Real, model_joint_p_rotation_3_3: Real,
+        model_translation_1: Real, model_translation_2: Real, model_translation_3: Real,
+        qpos: Real
+    ) = {
+        // CHANGE THESE TODO:
+        require(
+            model_joint_p_rotation_1_1 > -1.0 && model_joint_p_rotation_1_1 < 1.0 &&
+            model_joint_p_rotation_1_2 > -1.0 && model_joint_p_rotation_1_2 < 1.0 &&
+            model_joint_p_rotation_1_3 > -1.0 && model_joint_p_rotation_1_3 < 1.0 &&
+            model_joint_p_rotation_2_1 > -1.0 && model_joint_p_rotation_2_1 < 1.0 &&
+            model_joint_p_rotation_2_2 > -1.0 && model_joint_p_rotation_2_2 < 1.0 &&
+            model_joint_p_rotation_2_3 > -1.0 && model_joint_p_rotation_2_3 < 1.0 &&
+            model_joint_p_rotation_3_1 > -1.0 && model_joint_p_rotation_3_1 < 1.0 &&
+            model_joint_p_rotation_3_2 > -1.0 && model_joint_p_rotation_3_2 < 1.0 &&
+            model_joint_p_rotation_3_3 > -1.0 && model_joint_p_rotation_3_3 < 1.0 &&
+            model_joint_p_translation_1 > -1.0 && model_joint_p_translation_1 < 1.0 &&
+            model_joint_p_translation_2 > -1.0 && model_joint_p_translation_2 < 1.0 &&
+            model_joint_p_translation_3 > -1.0 && model_joint_p_translation_3 < 1.0 &&
+            qpos > -4.9 && qpos < 3.0
+        )
+        val sin_qpos = sin(qpos)
+        val cos_qpos = cos(qpos)
+
+        val rotation_matrix_1_1 = cos_qpos
+        val rotation_matrix_1_2 = sin_qpos
+        val rotation_matrix_1_3 = 0.0
+        val rotation_matrix_2_1 = -sin_qpos
+        val rotation_matrix_2_2 = cos_qpos
+        val rotation_matrix_2_3 = 0.0
+        val rotation_matrix_3_1 = 0.0
+        val rotation_matrix_3_2 = 0.0
+        val rotation_matrix_3_3 = 1.0
+
+        // limi.rotation is joint_placement_rotation * rotation_matrix
+        val limi_rotation_1_1 = model_joint_p_rotation_1_1 * rotation_matrix_1_1 + model_joint_p_rotation_1_2 * rotation_matrix_2_1 + model_joint_p_rotation_1_3 * rotation_matrix_3_1
+        val limi_rotation_1_2 = model_joint_p_rotation_1_1 * rotation_matrix_1_2 + model_joint_p_rotation_1_2 * rotation_matrix_2_2 + model_joint_p_rotation_1_3 * rotation_matrix_3_2
+        val limi_rotation_1_3 = model_joint_p_rotation_1_1 * rotation_matrix_1_3 + model_joint_p_rotation_1_2 * rotation_matrix_2_3 + model_joint_p_rotation_1_3 * rotation_matrix_3_3
+        val limi_rotation_2_1 = model_joint_p_rotation_2_1 * rotation_matrix_1_1 + model_joint_p_rotation_2_2 * rotation_matrix_2_1 + model_joint_p_rotation_2_3 * rotation_matrix_3_1
+        val limi_rotation_2_2 = model_joint_p_rotation_2_1 * rotation_matrix_1_2 + model_joint_p_rotation_2_2 * rotation_matrix_2_2 + model_joint_p_rotation_2_3 * rotation_matrix_3_2
+        val limi_rotation_2_3 = model_joint_p_rotation_2_1 * rotation_matrix_1_3 + model_joint_p_rotation_2_2 * rotation_matrix_2_3 + model_joint_p_rotation_2_3 * rotation_matrix_3_3
+        val limi_rotation_3_1 = model_joint_p_rotation_3_1 * rotation_matrix_1_1 + model_joint_p_rotation_3_2 * rotation_matrix_2_1 + model_joint_p_rotation_3_3 * rotation_matrix_3_1
+        val limi_rotation_3_2 = model_joint_p_rotation_3_1 * rotation_matrix_1_2 + model_joint_p_rotation_3_2 * rotation_matrix_2_2 + model_joint_p_rotation_3_3 * rotation_matrix_3_2
+        val limi_rotation_3_3 = model_joint_p_rotation_3_1 * rotation_matrix_1_3 + model_joint_p_rotation_3_2 * rotation_matrix_2_3 + model_joint_p_rotation_3_3 * rotation_matrix_3_3
+
+        // limi.translation is model_joint_p
+        val limi_translation_1 = model_translation_1
+        val limi_translation_2 = model_translation_2
+        val limi_translation_3 = model_translation_3
+
+        // if parent > 0, then oMi is omi[parent] * limi
+        // else, oMi is limi
+
+
+    }
+
+
   
 
 }
