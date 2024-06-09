@@ -179,45 +179,56 @@ object Minv {
         model_joint_p_rotation_2_1_1: Real, model_joint_p_rotation_2_1_2: Real, model_joint_p_rotation_2_1_3: Real,
         model_joint_p_rotation_2_2_1: Real, model_joint_p_rotation_2_2_2: Real, model_joint_p_rotation_2_2_3: Real,
         model_joint_p_rotation_2_3_1: Real, model_joint_p_rotation_2_3_2: Real, model_joint_p_rotation_2_3_3: Real,
-        model_joint_p_translation_2_1: Real, model_joint_p_translation_2_2: Real, model_joint_p_translation_2_3: Real,
+        //model_joint_p_translation_2_1: Real, model_joint_p_translation_2_2: Real, model_joint_p_translation_2_3: Real,
 
         model_joint_p_rotation_3_1_1: Real, model_joint_p_rotation_3_1_2: Real, model_joint_p_rotation_3_1_3: Real,
         model_joint_p_rotation_3_2_1: Real, model_joint_p_rotation_3_2_2: Real, model_joint_p_rotation_3_2_3: Real,
         model_joint_p_rotation_3_3_1: Real, model_joint_p_rotation_3_3_2: Real, model_joint_p_rotation_3_3_3: Real,
         model_joint_p_translation_3_1: Real, model_joint_p_translation_3_2: Real, model_joint_p_translation_3_3: Real,
 
+        model_joint_p_rotation_4_1_1: Real, model_joint_p_rotation_4_1_2: Real, model_joint_p_rotation_4_1_3: Real,
+        model_joint_p_rotation_4_2_1: Real, model_joint_p_rotation_4_2_2: Real, model_joint_p_rotation_4_2_3: Real,
+        model_joint_p_rotation_4_3_1: Real, model_joint_p_rotation_4_3_2: Real, model_joint_p_rotation_4_3_3: Real,
+        model_joint_p_translation_4_1: Real, model_joint_p_translation_4_2: Real, model_joint_p_translation_4_3: Real,
+
         qpos1: Real,
         qpos2: Real,
-        qpos3: Real
+        qpos3: Real,
+        qpos4: Real
     ) = {
         require(
-            model_joint_p_rotation_1_1_1 > -1.0 && model_joint_p_rotation_1_1_1 < 1.0 && model_joint_p_rotation_1_1_2 > -1.0 && model_joint_p_rotation_1_1_2 < 1.0 && model_joint_p_rotation_1_1_3 > -1.0 && model_joint_p_rotation_1_1_3 < 1.0 &&
-            model_joint_p_rotation_1_2_1 > -1.0 && model_joint_p_rotation_1_2_1 < 1.0 && model_joint_p_rotation_1_2_2 > -1.0 && model_joint_p_rotation_1_2_2 < 1.0 && model_joint_p_rotation_1_2_3 > -1.0 && model_joint_p_rotation_1_2_3 < 1.0 &&
-            model_joint_p_rotation_1_3_1 > -1.0 && model_joint_p_rotation_1_3_1 < 1.0 && model_joint_p_rotation_1_3_2 > -1.0 && model_joint_p_rotation_1_3_2 < 1.0 && model_joint_p_rotation_1_3_3 > -1.0 && model_joint_p_rotation_1_3_3 < 1.0 &&
+            model_joint_p_rotation_1_1_1 > 0.0 && model_joint_p_rotation_1_1_1 < 1.69 && model_joint_p_rotation_1_1_2 > 0.0 && model_joint_p_rotation_1_1_2 < 1.69 && model_joint_p_rotation_1_1_3 > 0.0 && model_joint_p_rotation_1_1_3 < 1.68 &&
+            model_joint_p_rotation_1_2_1 > 0.0 && model_joint_p_rotation_1_2_1 < 1.69 && model_joint_p_rotation_1_2_2 > 0.0 && model_joint_p_rotation_1_2_2 < 1.69 && model_joint_p_rotation_1_2_3 > 0.0 && model_joint_p_rotation_1_2_3 < 1.68 &&
+            model_joint_p_rotation_1_3_1 > 0.0 && model_joint_p_rotation_1_3_1 < 1.69 && model_joint_p_rotation_1_3_2 > 0.0 && model_joint_p_rotation_1_3_2 < 1.69 && model_joint_p_rotation_1_3_3 > 0.0 && model_joint_p_rotation_1_3_3 < 1.68 &&
 
-            model_joint_p_translation_1_1 > -1.0 && model_joint_p_translation_1_1 < 1.0 && 
-            model_joint_p_translation_1_2 > -1.0 && model_joint_p_translation_1_2 < 1.0 && 
-            model_joint_p_translation_1_3 > -1.0 && model_joint_p_translation_1_3 < 1.0 &&
+            model_joint_p_translation_1_1 > 0.0 && model_joint_p_translation_1_1 < 0.57 && 
+            model_joint_p_translation_1_2 > 0.0 && model_joint_p_translation_1_2 < 0.57 && 
+            model_joint_p_translation_1_3 > 0.0 && model_joint_p_translation_1_3 < 0.57 &&
 
-            model_joint_p_rotation_2_1_1 > -1.0 && model_joint_p_rotation_2_1_1 < 1.0 && model_joint_p_rotation_2_1_2 > -1.0 && model_joint_p_rotation_2_1_2 < 1.0 && model_joint_p_rotation_2_1_3 > -1.0 && model_joint_p_rotation_2_1_3 < 1.0 &&
-            model_joint_p_rotation_2_2_1 > -1.0 && model_joint_p_rotation_2_2_1 < 1.0 && model_joint_p_rotation_2_2_2 > -1.0 && model_joint_p_rotation_2_2_2 < 1.0 && model_joint_p_rotation_2_2_3 > -1.0 && model_joint_p_rotation_2_2_3 < 1.0 &&
-            model_joint_p_rotation_2_3_1 > -1.0 && model_joint_p_rotation_2_3_1 < 1.0 && model_joint_p_rotation_2_3_2 > -1.0 && model_joint_p_rotation_2_3_2 < 1.0 && model_joint_p_rotation_2_3_3 > -1.0 && model_joint_p_rotation_2_3_3 < 1.0 &&
+            model_joint_p_rotation_2_1_1 > -1.69 && model_joint_p_rotation_2_1_1 < 1.69 && model_joint_p_rotation_2_1_2 > -1.69 && model_joint_p_rotation_2_1_2 < 1.69 && model_joint_p_rotation_2_1_3 > -1.69 && model_joint_p_rotation_2_1_3 < 1.69 &&
+            model_joint_p_rotation_2_2_1 > -1.69 && model_joint_p_rotation_2_2_1 < 1.69 && model_joint_p_rotation_2_2_2 > -1.69 && model_joint_p_rotation_2_2_2 < 1.69 && model_joint_p_rotation_2_2_3 > -1.69 && model_joint_p_rotation_2_2_3 < 1.69 &&
+            model_joint_p_rotation_2_3_1 > -1.69 && model_joint_p_rotation_2_3_1 < 1.69 && model_joint_p_rotation_2_3_2 > -1.69 && model_joint_p_rotation_2_3_2 < 1.69 && model_joint_p_rotation_2_3_3 > -1.69 && model_joint_p_rotation_2_3_3 < 1.69 &&
 
-            model_joint_p_translation_2_1 > -1.0 && model_joint_p_translation_2_1 < 1.0 &&
-            model_joint_p_translation_2_2 > -1.0 && model_joint_p_translation_2_2 < 1.0 &&
-            model_joint_p_translation_2_3 > -1.0 && model_joint_p_translation_2_3 < 1.0 &&
+            model_joint_p_rotation_3_1_1 > -1.69 && model_joint_p_rotation_3_1_1 < 1.69 && model_joint_p_rotation_3_1_2 > -1.69 && model_joint_p_rotation_3_1_2 < 1.69 && model_joint_p_rotation_3_1_3 > -1.69 && model_joint_p_rotation_3_1_3 < 1.69 &&
+            model_joint_p_rotation_3_2_1 > -1.69 && model_joint_p_rotation_3_2_1 < 1.69 && model_joint_p_rotation_3_2_2 > -1.69 && model_joint_p_rotation_3_2_2 < 1.69 && model_joint_p_rotation_3_2_3 > -1.69 && model_joint_p_rotation_3_2_3 < 1.69 &&
+            model_joint_p_rotation_3_3_1 > -1.69 && model_joint_p_rotation_3_3_1 < 1.69 && model_joint_p_rotation_3_3_2 > -1.69 && model_joint_p_rotation_3_3_2 < 1.69 && model_joint_p_rotation_3_3_3 > -1.69 && model_joint_p_rotation_3_3_3 < 1.69 &&
 
-            model_joint_p_rotation_3_1_1 > -1.0 && model_joint_p_rotation_3_1_1 < 1.0 && model_joint_p_rotation_3_1_2 > -1.0 && model_joint_p_rotation_3_1_2 < 1.0 && model_joint_p_rotation_3_1_3 > -1.0 && model_joint_p_rotation_3_1_3 < 1.0 &&
-            model_joint_p_rotation_3_2_1 > -1.0 && model_joint_p_rotation_3_2_1 < 1.0 && model_joint_p_rotation_3_2_2 > -1.0 && model_joint_p_rotation_3_2_2 < 1.0 && model_joint_p_rotation_3_2_3 > -1.0 && model_joint_p_rotation_3_2_3 < 1.0 &&
-            model_joint_p_rotation_3_3_1 > -1.0 && model_joint_p_rotation_3_3_1 < 1.0 && model_joint_p_rotation_3_3_2 > -1.0 && model_joint_p_rotation_3_3_2 < 1.0 && model_joint_p_rotation_3_3_3 > -1.0 && model_joint_p_rotation_3_3_3 < 1.0 &&
+            model_joint_p_translation_3_1 > -0.54 && model_joint_p_translation_3_1 < 0.0 &&
+            model_joint_p_translation_3_2 > -0.54 && model_joint_p_translation_3_2 < 0.0 &&
+            model_joint_p_translation_3_3 > -0.54 && model_joint_p_translation_3_3 < 0.0 &&
 
-            model_joint_p_translation_3_1 > -1.0 && model_joint_p_translation_3_1 < 1.0 &&
-            model_joint_p_translation_3_2 > -1.0 && model_joint_p_translation_3_2 < 1.0 &&
-            model_joint_p_translation_3_3 > -1.0 && model_joint_p_translation_3_3 < 1.0 &&
+            model_joint_p_rotation_4_1_1 > -1.69 && model_joint_p_rotation_4_1_1 < 1.69 && model_joint_p_rotation_4_1_2 > -1.69 && model_joint_p_rotation_4_1_2 < 1.69 && model_joint_p_rotation_4_1_3 > -1.69 && model_joint_p_rotation_4_1_3 < 1.69 &&
+            model_joint_p_rotation_4_2_1 > -1.69 && model_joint_p_rotation_4_2_1 < 1.69 && model_joint_p_rotation_4_2_2 > -1.69 && model_joint_p_rotation_4_2_2 < 1.69 && model_joint_p_rotation_4_2_3 > -1.69 && model_joint_p_rotation_4_2_3 < 1.69 &&
+            model_joint_p_rotation_4_3_1 > -1.69 && model_joint_p_rotation_4_3_1 < 1.69 && model_joint_p_rotation_4_3_2 > -1.69 && model_joint_p_rotation_4_3_2 < 1.69 && model_joint_p_rotation_4_3_3 > -1.69 && model_joint_p_rotation_4_3_3 < 1.69 &&
 
-            qpos1 > -4.9 && qpos1 < 3.0 &&
-            qpos2 > -4.9 && qpos2 < 3.0 &&
-            qpos3 > -4.9 && qpos3 < 3.0
+            model_joint_p_translation_4_1 > 0.0 && model_joint_p_translation_4_1 < 0.15 &&
+            model_joint_p_translation_4_2 > 0.0 && model_joint_p_translation_4_2 < 0.15 &&
+            model_joint_p_translation_4_3 > 0.0 && model_joint_p_translation_4_3 < 0.15 &&
+
+            qpos1 > -1.6 && qpos1 < 1.6 &&
+            qpos2 > -1.6 && qpos2 < 1.6 &&
+            qpos3 > -1.6 && qpos3 < 1.6 &&
+            qpos4 > -1.6 && qpos4 < 1.6
 
         )
 
@@ -284,9 +295,10 @@ object Minv {
         val limi_rotation_2_3_2 = model_joint_p_rotation_2_3_1 * rotation_matrix_2_1_2 + model_joint_p_rotation_2_3_2 * rotation_matrix_2_2_2
         val limi_rotation_2_3_3 = model_joint_p_rotation_2_3_3// * rotation_matrix_2_3_3
 
-        val limi_translation_2_1 = model_joint_p_translation_2_1
-        val limi_translation_2_2 = model_joint_p_translation_2_2
-        val limi_translation_2_3 = model_joint_p_translation_2_3
+        // These 3 are always 0 for some reason
+        //val limi_translation_2_1 = model_joint_p_translation_2_1
+        //val limi_translation_2_2 = model_joint_p_translation_2_2
+        //val limi_translation_2_3 = model_joint_p_translation_2_3
 
         // parent is 1, so oMi is oMi[1] * limi
         val oMi_rotation_2_1_1 = oMi_rotation_1_1_1 * limi_rotation_2_1_1 + oMi_rotation_1_1_2 * limi_rotation_2_2_1 + oMi_rotation_1_1_3 * limi_rotation_2_3_1
@@ -299,9 +311,9 @@ object Minv {
         val oMi_rotation_2_3_2 = oMi_rotation_1_3_1 * limi_rotation_2_1_2 + oMi_rotation_1_3_2 * limi_rotation_2_2_2 + oMi_rotation_1_3_3 * limi_rotation_2_3_2
         val oMi_rotation_2_3_3 = oMi_rotation_1_3_1 * limi_rotation_2_1_3 + oMi_rotation_1_3_2 * limi_rotation_2_2_3 + oMi_rotation_1_3_3 * limi_rotation_2_3_3
 
-        val oMi_translation_2_1 = oMi_rotation_1_1_1 * limi_translation_2_1 + oMi_rotation_1_2_1 * limi_translation_2_2 + oMi_rotation_1_3_1 * limi_translation_2_3 + oMi_translation_1_1
-        val oMi_translation_2_2 = oMi_rotation_1_1_2 * limi_translation_2_1 + oMi_rotation_1_2_2 * limi_translation_2_2 + oMi_rotation_1_3_2 * limi_translation_2_3 + oMi_translation_1_2
-        val oMi_translation_2_3 = oMi_rotation_1_1_3 * limi_translation_2_1 + oMi_rotation_1_2_3 * limi_translation_2_2 + oMi_rotation_1_3_3 * limi_translation_2_3 + oMi_translation_1_3
+        val oMi_translation_2_1 = oMi_translation_1_1
+        val oMi_translation_2_2 = oMi_translation_1_2
+        val oMi_translation_2_3 = oMi_translation_1_3
 
         // let's test until now
         //oMi_translation_2_1 + oMi_translation_2_2 + oMi_translation_2_3 + oMi_rotation_2_1_1 + oMi_rotation_2_1_2 + oMi_rotation_2_1_3 + oMi_rotation_2_2_1 + oMi_rotation_2_2_2 + oMi_rotation_2_2_3 + oMi_rotation_2_3_1 + oMi_rotation_2_3_2 + oMi_rotation_2_3_3
@@ -344,13 +356,56 @@ object Minv {
         val oMi_translation_3_1 = oMi_rotation_2_1_1 * limi_translation_3_1 + oMi_rotation_2_1_2 * limi_translation_3_2 + oMi_rotation_2_1_3 * limi_translation_3_3 + oMi_translation_2_1
         val oMi_translation_3_2 = oMi_rotation_2_2_1 * limi_translation_3_1 + oMi_rotation_2_2_2 * limi_translation_3_2 + oMi_rotation_2_2_3 * limi_translation_3_3 + oMi_translation_2_2
         val oMi_translation_3_3 = oMi_rotation_2_3_1 * limi_translation_3_1 + oMi_rotation_2_3_2 * limi_translation_3_2 + oMi_rotation_2_3_3 * limi_translation_3_3 + oMi_translation_2_3
-        
+
         // let's test until now
-        oMi_translation_3_1 + oMi_translation_3_2 + oMi_translation_3_3 + oMi_rotation_3_1_1 + oMi_rotation_3_1_2 + oMi_rotation_3_1_3 + oMi_rotation_3_2_1 + oMi_rotation_3_2_2 + oMi_rotation_3_2_3 + oMi_rotation_3_3_1 + oMi_rotation_3_3_2 + oMi_rotation_3_3_3
+        //oMi_translation_3_1 + oMi_translation_3_2 + oMi_translation_3_3 + oMi_rotation_3_1_1 + oMi_rotation_3_1_2 + oMi_rotation_3_1_3 + oMi_rotation_3_2_1 + oMi_rotation_3_2_2 + oMi_rotation_3_2_3 + oMi_rotation_3_3_1 + oMi_rotation_3_3_2 + oMi_rotation_3_3_3
 
+        // JOINT 4
+        val sin_qpos4 = sin(qpos4)
+        val cos_qpos4 = cos(qpos4)
 
+        val rotation_matrix_4_1_1 = cos_qpos4
+        val rotation_matrix_4_1_2 = -sin_qpos4
+        val rotation_matrix_4_2_1 = sin_qpos4
+        val rotation_matrix_4_2_2 = cos_qpos4
+        // val rotation_matrix_4_3_3 = 1.0 for some reason daisy does not like this line
+        
+        val limi_rotation_4_1_1 = model_joint_p_rotation_4_1_1 * rotation_matrix_4_1_1 + model_joint_p_rotation_4_1_2 * rotation_matrix_4_2_1
+        val limi_rotation_4_1_2 = model_joint_p_rotation_4_1_1 * rotation_matrix_4_1_2 + model_joint_p_rotation_4_1_2 * rotation_matrix_4_2_2
+        val limi_rotation_4_1_3 = model_joint_p_rotation_4_1_3// * rotation_matrix_4_3_3
+        val limi_rotation_4_2_1 = model_joint_p_rotation_4_2_1 * rotation_matrix_4_1_1 + model_joint_p_rotation_4_2_2 * rotation_matrix_4_2_1
+        val limi_rotation_4_2_2 = model_joint_p_rotation_4_2_1 * rotation_matrix_4_1_2 + model_joint_p_rotation_4_2_2 * rotation_matrix_4_2_2
+        val limi_rotation_4_2_3 = model_joint_p_rotation_4_2_3// * rotation_matrix_4_3_3
+        val limi_rotation_4_3_1 = model_joint_p_rotation_4_3_1 * rotation_matrix_4_1_1 + model_joint_p_rotation_4_3_2 * rotation_matrix_4_2_1
+        val limi_rotation_4_3_2 = model_joint_p_rotation_4_3_1 * rotation_matrix_4_1_2 + model_joint_p_rotation_4_3_2 * rotation_matrix_4_2_2
+        val limi_rotation_4_3_3 = model_joint_p_rotation_4_3_3// * rotation_matrix_4_3_3
 
-    } ensuring(res => res +/- 5e-1)
+        val limi_translation_4_1 = model_joint_p_translation_4_1
+        val limi_translation_4_2 = model_joint_p_translation_4_2
+        val limi_translation_4_3 = model_joint_p_translation_4_3
+
+        // parent is 3, so oMi is oMi[3] * limi
+        val oMi_rotation_4_1_1 = oMi_rotation_3_1_1 * limi_rotation_4_1_1 + oMi_rotation_3_1_2 * limi_rotation_4_2_1 + oMi_rotation_3_1_3 * limi_rotation_4_3_1
+        val oMi_rotation_4_1_2 = oMi_rotation_3_1_1 * limi_rotation_4_1_2 + oMi_rotation_3_1_2 * limi_rotation_4_2_2 + oMi_rotation_3_1_3 * limi_rotation_4_3_2
+        val oMi_rotation_4_1_3 = oMi_rotation_3_1_1 * limi_rotation_4_1_3 + oMi_rotation_3_1_2 * limi_rotation_4_2_3 + oMi_rotation_3_1_3 * limi_rotation_4_3_3
+        val oMi_rotation_4_2_1 = oMi_rotation_3_2_1 * limi_rotation_4_1_1 + oMi_rotation_3_2_2 * limi_rotation_4_2_1 + oMi_rotation_3_2_3 * limi_rotation_4_3_1
+        val oMi_rotation_4_2_2 = oMi_rotation_3_2_1 * limi_rotation_4_1_2 + oMi_rotation_3_2_2 * limi_rotation_4_2_2 + oMi_rotation_3_2_3 * limi_rotation_4_3_2
+        val oMi_rotation_4_2_3 = oMi_rotation_3_2_1 * limi_rotation_4_1_3 + oMi_rotation_3_2_2 * limi_rotation_4_2_3 + oMi_rotation_3_2_3 * limi_rotation_4_3_3
+        val oMi_rotation_4_3_1 = oMi_rotation_3_3_1 * limi_rotation_4_1_1 + oMi_rotation_3_3_2 * limi_rotation_4_2_1 + oMi_rotation_3_3_3 * limi_rotation_4_3_1
+        val oMi_rotation_4_3_2 = oMi_rotation_3_3_1 * limi_rotation_4_1_2 + oMi_rotation_3_3_2 * limi_rotation_4_2_2 + oMi_rotation_3_3_3 * limi_rotation_4_3_2
+        val oMi_rotation_4_3_3 = oMi_rotation_3_3_1 * limi_rotation_4_1_3 + oMi_rotation_3_3_2 * limi_rotation_4_2_3 + oMi_rotation_3_3_3 * limi_rotation_4_3_3
+
+        val oMi_translation_4_1 = oMi_rotation_3_1_1 * limi_translation_4_1 + oMi_rotation_3_1_2 * limi_translation_4_2 + oMi_rotation_3_1_3 * limi_translation_4_3 + oMi_translation_3_1
+        val oMi_translation_4_2 = oMi_rotation_3_2_1 * limi_translation_4_1 + oMi_rotation_3_2_2 * limi_translation_4_2 + oMi_rotation_3_2_3 * limi_translation_4_3 + oMi_translation_3_2
+        val oMi_translation_4_3 = oMi_rotation_3_3_1 * limi_translation_4_1 + oMi_rotation_3_3_2 * limi_translation_4_2 + oMi_rotation_3_3_3 * limi_translation_4_3 + oMi_translation_3_3
+
+        // let's test until now
+        //oMi_translation_4_1 + oMi_translation_4_2 + oMi_translation_4_3 + oMi_rotation_4_1_1 + oMi_rotation_4_1_2 + oMi_rotation_4_1_3 + oMi_rotation_4_2_1 + oMi_rotation_4_2_2 + oMi_rotation_4_2_3 + oMi_rotation_4_3_1 + oMi_rotation_4_3_2 + oMi_rotation_4_3_3
+        oMi_rotation_4_1_1
+
+        //oMi_translation_4_1 + oMi_translation_4_2 + oMi_translation_4_3
+
+    } ensuring(res => res +/- 1e-5)
 
 
 
