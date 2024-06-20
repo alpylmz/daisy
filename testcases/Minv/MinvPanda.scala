@@ -196,11 +196,17 @@ object Minv {
         model_joint_p_rotation_5_3_1: Real, model_joint_p_rotation_5_3_2: Real, model_joint_p_rotation_5_3_3: Real,
         model_joint_p_translation_5_1: Real, model_joint_p_translation_5_2: Real, model_joint_p_translation_5_3: Real,
 
+        model_joint_p_rotation_6_1_1: Real, model_joint_p_rotation_6_1_2: Real, model_joint_p_rotation_6_1_3: Real,
+        model_joint_p_rotation_6_2_1: Real, model_joint_p_rotation_6_2_2: Real, model_joint_p_rotation_6_2_3: Real,
+        model_joint_p_rotation_6_3_1: Real, model_joint_p_rotation_6_3_2: Real, model_joint_p_rotation_6_3_3: Real,
+        model_joint_p_translation_6_1: Real, model_joint_p_translation_6_2: Real, model_joint_p_translation_6_3: Real,
+
         qpos1: Real,
         qpos2: Real,
         qpos3: Real,
         qpos4: Real,
-        qpos5: Real
+        qpos5: Real,
+        qpos6: Real
     ) = {
         require(
             model_joint_p_rotation_1_1_1 > -1.0 && model_joint_p_rotation_1_1_1 < 1.0 && model_joint_p_rotation_1_1_2 > -1.0 && model_joint_p_rotation_1_1_2 < 1.0 && model_joint_p_rotation_1_1_3 > -1.0 && model_joint_p_rotation_1_1_3 < 1.0 &&
@@ -239,18 +245,20 @@ object Minv {
             model_joint_p_translation_5_2 > -0.15 && model_joint_p_translation_5_2 < 0.0 &&
             model_joint_p_translation_5_3 > -0.15 && model_joint_p_translation_5_3 < 0.0 &&
 
-            //qpos1 > -1.6 && qpos1 < 1.6 &&
-            //qpos2 > -1.6 && qpos2 < 1.6 &&
-            //qpos3 > -1.6 && qpos3 < 1.6 &&
-            //qpos4 > -1.6 && qpos4 < 1.6 &&
-            //qpos5 > -1.6 && qpos5 < 1.6
+            model_joint_p_rotation_6_1_1 > -1.0 && model_joint_p_rotation_6_1_1 < 1.0 && model_joint_p_rotation_6_1_2 > -1.0 && model_joint_p_rotation_6_1_2 < 1.0 && model_joint_p_rotation_6_1_3 > -1.0 && model_joint_p_rotation_6_1_3 < 1.0 &&
+            model_joint_p_rotation_6_2_1 > -1.0 && model_joint_p_rotation_6_2_1 < 1.0 && model_joint_p_rotation_6_2_2 > -1.0 && model_joint_p_rotation_6_2_2 < 1.0 && model_joint_p_rotation_6_2_3 > -1.0 && model_joint_p_rotation_6_2_3 < 1.0 &&
+            model_joint_p_rotation_6_3_1 > -1.0 && model_joint_p_rotation_6_3_1 < 1.0 && model_joint_p_rotation_6_3_2 > -1.0 && model_joint_p_rotation_6_3_2 < 1.0 && model_joint_p_rotation_6_3_3 > -1.0 && model_joint_p_rotation_6_3_3 < 1.0 &&
+
+            model_joint_p_translation_6_1 > 0.0 && model_joint_p_translation_6_1 < 0.15 &&
+            model_joint_p_translation_6_2 > 0.0 && model_joint_p_translation_6_2 < 0.15 &&
+            model_joint_p_translation_6_3 > 0.0 && model_joint_p_translation_6_3 < 0.15 &&
 
             qpos1 > -3.2 && qpos1 < 3.2 &&
             qpos2 > -3.2 && qpos2 < 3.2 &&
             qpos3 > -3.2 && qpos3 < 3.2 &&
             qpos4 > -3.2 && qpos4 < 3.2 &&
-            qpos5 > -3.2 && qpos5 < 3.2
-
+            qpos5 > -3.2 && qpos5 < 3.2 &&
+            qpos6 > -3.2 && qpos6 < 3.2
         )
         
         // approximate the sine and cosine functions with taylor series
@@ -275,6 +283,8 @@ object Minv {
         val cos_qpos4 = cos(qpos4)
         val sin_qpos5 = sin(qpos5)
         val cos_qpos5 = cos(qpos5)
+        val sin_qpos6 = sin(qpos6)
+        val cos_qpos6 = cos(qpos6)
 
         // JOINT 1
 
@@ -477,15 +487,50 @@ object Minv {
 
         // let's test until now
         //oMi_translation_5_1 + oMi_translation_5_2 + oMi_translation_5_3 + oMi_rotation_5_1_1 + oMi_rotation_5_1_2 + oMi_rotation_5_1_3 + oMi_rotation_5_2_1 + oMi_rotation_5_2_2 + oMi_rotation_5_2_3 + oMi_rotation_5_3_1 + oMi_rotation_5_3_2 + oMi_rotation_5_3_3
-        oMi_rotation_5_1_1
+        
 
-        
-        
-        
-        
-        //oMi_translation_4_1 + oMi_translation_4_2 + oMi_translation_4_3
+        // JOINT 6
 
-    }
+        val rotation_matrix_6_1_1 = cos_qpos6
+        val rotation_matrix_6_1_2 = -sin_qpos6
+        val rotation_matrix_6_2_1 = sin_qpos6
+        val rotation_matrix_6_2_2 = cos_qpos6
+        // val rotation_matrix_6_3_3 = 1.0 for some reason daisy does not like this line
+
+        val limi_rotation_6_1_1 = model_joint_p_rotation_6_1_1 * rotation_matrix_6_1_1 + model_joint_p_rotation_6_1_2 * rotation_matrix_6_2_1
+        val limi_rotation_6_1_2 = model_joint_p_rotation_6_1_1 * rotation_matrix_6_1_2 + model_joint_p_rotation_6_1_2 * rotation_matrix_6_2_2
+        val limi_rotation_6_1_3 = model_joint_p_rotation_6_1_3// * rotation_matrix_6_3_3
+        val limi_rotation_6_2_1 = model_joint_p_rotation_6_2_1 * rotation_matrix_6_1_1 + model_joint_p_rotation_6_2_2 * rotation_matrix_6_2_1
+        val limi_rotation_6_2_2 = model_joint_p_rotation_6_2_1 * rotation_matrix_6_1_2 + model_joint_p_rotation_6_2_2 * rotation_matrix_6_2_2
+        val limi_rotation_6_2_3 = model_joint_p_rotation_6_2_3// * rotation_matrix_6_3_3
+        val limi_rotation_6_3_1 = model_joint_p_rotation_6_3_1 * rotation_matrix_6_1_1 + model_joint_p_rotation_6_3_2 * rotation_matrix_6_2_1
+        val limi_rotation_6_3_2 = model_joint_p_rotation_6_3_1 * rotation_matrix_6_1_2 + model_joint_p_rotation_6_3_2 * rotation_matrix_6_2_2
+        val limi_rotation_6_3_3 = model_joint_p_rotation_6_3_3// * rotation_matrix_6_3_3
+
+        val limi_translation_6_1 = model_joint_p_translation_6_1
+        val limi_translation_6_2 = model_joint_p_translation_6_2
+        val limi_translation_6_3 = model_joint_p_translation_6_3
+
+        // parent is 5, so oMi is oMi[5] * limi
+        val oMi_rotation_6_1_1 = oMi_rotation_5_1_1 * limi_rotation_6_1_1 + oMi_rotation_5_1_2 * limi_rotation_6_2_1 + oMi_rotation_5_1_3 * limi_rotation_6_3_1
+        val oMi_rotation_6_1_2 = oMi_rotation_5_1_1 * limi_rotation_6_1_2 + oMi_rotation_5_1_2 * limi_rotation_6_2_2 + oMi_rotation_5_1_3 * limi_rotation_6_3_2
+        val oMi_rotation_6_1_3 = oMi_rotation_5_1_1 * limi_rotation_6_1_3 + oMi_rotation_5_1_2 * limi_rotation_6_2_3 + oMi_rotation_5_1_3 * limi_rotation_6_3_3
+        val oMi_rotation_6_2_1 = oMi_rotation_5_2_1 * limi_rotation_6_1_1 + oMi_rotation_5_2_2 * limi_rotation_6_2_1 + oMi_rotation_5_2_3 * limi_rotation_6_3_1
+        val oMi_rotation_6_2_2 = oMi_rotation_5_2_1 * limi_rotation_6_1_2 + oMi_rotation_5_2_2 * limi_rotation_6_2_2 + oMi_rotation_5_2_3 * limi_rotation_6_3_2
+        val oMi_rotation_6_2_3 = oMi_rotation_5_2_1 * limi_rotation_6_1_3 + oMi_rotation_5_2_2 * limi_rotation_6_2_3 + oMi_rotation_5_2_3 * limi_rotation_6_3_3
+        val oMi_rotation_6_3_1 = oMi_rotation_5_3_1 * limi_rotation_6_1_1 + oMi_rotation_5_3_2 * limi_rotation_6_2_1 + oMi_rotation_5_3_3 * limi_rotation_6_3_1
+        val oMi_rotation_6_3_2 = oMi_rotation_5_3_1 * limi_rotation_6_1_2 + oMi_rotation_5_3_2 * limi_rotation_6_2_2 + oMi_rotation_5_3_3 * limi_rotation_6_3_2
+        val oMi_rotation_6_3_3 = oMi_rotation_5_3_1 * limi_rotation_6_1_3 + oMi_rotation_5_3_2 * limi_rotation_6_2_3 + oMi_rotation_5_3_3 * limi_rotation_6_3_3
+
+        val oMi_translation_6_1 = oMi_rotation_5_1_1 * limi_translation_6_1 + oMi_rotation_5_1_2 * limi_translation_6_2 + oMi_rotation_5_1_3 * limi_translation_6_3 + oMi_translation_5_1
+        val oMi_translation_6_2 = oMi_rotation_5_2_1 * limi_translation_6_1 + oMi_rotation_5_2_2 * limi_translation_6_2 + oMi_rotation_5_2_3 * limi_translation_6_3 + oMi_translation_5_2
+        val oMi_translation_6_3 = oMi_rotation_5_3_1 * limi_translation_6_1 + oMi_rotation_5_3_2 * limi_translation_6_2 + oMi_rotation_5_3_3 * limi_translation_6_3 + oMi_translation_5_3
+
+        // let's test until now
+        //oMi_translation_6_1 + oMi_translation_6_2 + oMi_translation_6_3 + oMi_rotation_6_1_1 + oMi_rotation_6_1_2 + oMi_rotation_6_1_3 + oMi_rotation_6_2_1 + oMi_rotation_6_2_2 + oMi_rotation_6_2_3 + oMi_rotation_6_3_1 + oMi_rotation_6_3_2 + oMi_rotation_6_3_3
+        rotation_matrix_6_1_1
+
+    } ensuring(res => res +/- 1e-5)
 
 
 
