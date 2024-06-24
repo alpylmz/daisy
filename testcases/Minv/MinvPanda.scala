@@ -517,35 +517,36 @@ object Minv {
         //val temp3_6_3_2 = limi_rotation_6_3_1 * Di_6_1_2 + limi_rotation_6_3_2 * Di_6_2_2 + limi_rotation_6_3_3 * Di_6_3_2
         //val temp3_6_3_3 = limi_rotation_6_3_1 * Di_6_1_3 + limi_rotation_6_3_2 * Di_6_2_3 + limi_rotation_6_3_3 * Di_6_3_3
 
-        ////val temp3_6_1_1 = limi_rotation_6_1_1 * 0.018 + limi_rotation_6_1_2 * 0.007
-        ////val temp3_6_1_2 = limi_rotation_6_1_1 * 0.007 + limi_rotation_6_1_2 * 0.023
-        //////val temp3_6_1_3 = 0.0
-        //////val temp3_6_2_1 = 0.0
-        //////val temp3_6_2_2 = 0.0
-        //////val temp3_6_2_3 = 0.0
-        ////val temp3_6_3_1 = limi_rotation_6_3_1 * 0.018 + limi_rotation_6_3_2 * 0.007
-        ////val temp3_6_3_2 = limi_rotation_6_3_1 * 0.007 + limi_rotation_6_3_2 * 0.023
-        //////val temp3_6_3_3 = 0.0
+        val temp3_6_1_1 = limi_rotation_6_1_1 * 0.018 + limi_rotation_6_1_2 * 0.007
+        val temp3_6_1_2 = limi_rotation_6_1_1 * 0.007 + limi_rotation_6_1_2 * 0.023
+        //val temp3_6_1_3 = 0.0
+        //val temp3_6_2_1 = 0.0
+        //val temp3_6_2_2 = 0.0
+        //val temp3_6_2_3 = 0.0
+        val temp3_6_3_1 = limi_rotation_6_3_1 * 0.018 + limi_rotation_6_3_2 * 0.007
+        val temp3_6_3_2 = limi_rotation_6_3_1 * 0.007 + limi_rotation_6_3_2 * 0.023
+        //val temp3_6_3_3 = 0.0
 
-        //val Do_temp_6_1_1 = temp3_6_1_1 * liMi_rotation_6_1_1 + temp3_6_2_1 * liMi_rotation_6_2_1 + temp3_6_3_1 * liMi_rotation_6_3_1
-        //val Do_temp_6_1_2 = temp3_6_1_1 * liMi_rotation_6_1_2 + temp3_6_2_1 * liMi_rotation_6_2_2 + temp3_6_3_1 * liMi_rotation_6_3_2
-        //val Do_temp_6_1_3 = temp3_6_1_1 * liMi_rotation_6_1_3 + temp3_6_2_1 * liMi_rotation_6_2_3 + temp3_6_3_1 * liMi_rotation_6_3_3
-        //val Do_temp_6_2_1 = temp3_6_1_2 * liMi_rotation_6_1_1 + temp3_6_2_2 * liMi_rotation_6_2_1 + temp3_6_3_2 * liMi_rotation_6_3_1
-        //val Do_temp_6_2_2 = temp3_6_1_2 * liMi_rotation_6_1_2 + temp3_6_2_2 * liMi_rotation_6_2_2 + temp3_6_3_2 * liMi_rotation_6_3_2
-        //val Do_temp_6_2_3 = temp3_6_1_2 * liMi_rotation_6_1_3 + temp3_6_2_2 * liMi_rotation_6_2_3 + temp3_6_3_2 * liMi_rotation_6_3_3
-        //val Do_temp_6_3_1 = temp3_6_1_3 * liMi_rotation_6_1_1 + temp3_6_2_3 * liMi_rotation_6_2_1 + temp3_6_3_3 * liMi_rotation_6_3_1
-        //val Do_temp_6_3_2 = temp3_6_1_3 * liMi_rotation_6_1_2 + temp3_6_2_3 * liMi_rotation_6_2_2 + temp3_6_3_3 * liMi_rotation_6_3_2
-        //val Do_temp_6_3_3 = temp3_6_1_3 * liMi_rotation_6_1_3 + temp3_6_2_3 * liMi_rotation_6_2_3 + temp3_6_3_3 * liMi_rotation_6_3_3
+        //val Do_temp_6_1_1 = temp3_6_1_1 * limi_rotation_transpose_6_1_1 + temp3_6_1_2 * limi_rotation_transpose_6_2_1 + temp3_6_1_3 * limi_rotation_transpose_6_3_1
+        //val Do_temp_6_1_2 = temp3_6_1_1 * limi_rotation_transpose_6_1_2 + temp3_6_1_2 * limi_rotation_transpose_6_2_2 + temp3_6_1_3 * limi_rotation_transpose_6_3_2
+        //val Do_temp_6_1_3 = temp3_6_1_1 * limi_rotation_transpose_6_1_3 + temp3_6_1_2 * limi_rotation_transpose_6_2_3 + temp3_6_1_3 * limi_rotation_transpose_6_3_3
+        //val Do_temp_6_2_1 = temp3_6_2_1 * limi_rotation_transpose_6_1_1 + temp3_6_2_2 * limi_rotation_transpose_6_2_1 + temp3_6_2_3 * limi_rotation_transpose_6_3_1
+        //val Do_temp_6_2_2 = temp3_6_2_1 * limi_rotation_transpose_6_1_2 + temp3_6_2_2 * limi_rotation_transpose_6_2_2 + temp3_6_2_3 * limi_rotation_transpose_6_3_2
+        //val Do_temp_6_2_3 = temp3_6_2_1 * limi_rotation_transpose_6_1_3 + temp3_6_2_2 * limi_rotation_transpose_6_2_3 + temp3_6_2_3 * limi_rotation_transpose_6_3_3
+        //val Do_temp_6_3_1 = temp3_6_3_1 * limi_rotation_transpose_6_1_1 + temp3_6_3_2 * limi_rotation_transpose_6_2_1 + temp3_6_3_3 * limi_rotation_transpose_6_3_1
+        //val Do_temp_6_3_2 = temp3_6_3_1 * limi_rotation_transpose_6_1_2 + temp3_6_3_2 * limi_rotation_transpose_6_2_2 + temp3_6_3_3 * limi_rotation_transpose_6_3_2
+        //val Do_temp_6_3_3 = temp3_6_3_1 * limi_rotation_transpose_6_1_3 + temp3_6_3_2 * limi_rotation_transpose_6_2_3 + temp3_6_3_3 * limi_rotation_transpose_6_3_3
 
-        ////val Do_temp_6_1_1 = temp3_6_1_1 * limi_rotation_6_1_1 + temp3_6_3_1 * limi_rotation_6_3_1
-        ////val Do_temp_6_1_2 = temp3_6_1_1 * limi_rotation_6_1_2 + temp3_6_3_1 * limi_rotation_6_3_2
-        //////val Do_temp_6_1_3 = 0.0
-        ////val Do_temp_6_2_1 = temp3_6_1_2 * limi_rotation_6_1_1 + temp3_6_3_2 * limi_rotation_6_3_1
-        ////val Do_temp_6_2_2 = temp3_6_1_2 * limi_rotation_6_1_2 + temp3_6_3_2 * limi_rotation_6_3_2
-        //////val Do_temp_6_2_3 = 0.0
-        //////val Do_temp_6_3_1 = 0.0
-        //////val Do_temp_6_3_2 = 0.0
-        //////val Do_temp_6_3_3 = 0.0
+        val Do_temp_6_1_1 = temp3_6_1_1 * limi_rotation_transpose_6_1_1 + temp3_6_1_2 * limi_rotation_transpose_6_2_1
+        //val Do_temp_6_1_2 = 0.0
+        val Do_temp_6_1_3 = temp3_6_1_1 * limi_rotation_transpose_6_1_3 + temp3_6_1_2 * limi_rotation_transpose_6_2_3
+        //val Do_temp_6_2_1 = 0.0
+        //val Do_temp_6_2_2 = 0.0
+        //val Do_temp_6_2_3 = 0.0
+        val Do_temp_6_3_1 = temp3_6_3_1 * limi_rotation_transpose_6_1_1 + temp3_6_3_2 * limi_rotation_transpose_6_2_1
+        //val Do_temp_6_3_2 = 0.0
+        val Do_temp_6_3_3 = temp3_6_3_1 * limi_rotation_transpose_6_1_3 + temp3_6_3_2 * limi_rotation_transpose_6_2_3
+        
 
         // Then, we'll have 
         // Do_temp2.row(1) = limi_translation.cross(Bo.col(1)) + Do_temp.row(1)
