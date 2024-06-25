@@ -1196,7 +1196,20 @@ object Minv {
 
         val Dinv_4_1 = 1.0 / U_4_6
 
-        Dinv_4_1
+        val UDinv_4_1 = U_4_1 * Dinv_4_1
+        val UDinv_4_2 = U_4_2 * Dinv_4_1
+        val UDinv_4_3 = U_4_3 * Dinv_4_1
+        val UDinv_4_4 = U_4_4 * Dinv_4_1
+        val UDinv_4_5 = U_4_5 * Dinv_4_1
+        val UDinv_4_6 = U_4_6 * Dinv_4_1
+
+        UDinv_4_6
+
+        
+
+
+
+
 
     } //ensuring(res => res +/- 1e-10)
 
