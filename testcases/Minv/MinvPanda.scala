@@ -15,12 +15,13 @@ object Minv {
         qpos6: Real
     ) = {
         require(
-            qpos1 > -3.2 && qpos1 < 3.2 &&
-            qpos2 > -3.2 && qpos2 < 3.2 &&
-            qpos3 > -3.2 && qpos3 < 3.2 &&
-            qpos4 > -3.2 && qpos4 < 3.2 &&
-            qpos5 > -3.2 && qpos5 < 3.2 &&
-            qpos6 > -3.2 && qpos6 < 3.2
+            qpos1 > 0.1 && qpos1 < 2.8973 &&
+            qpos2 > 0.1 && qpos2 < 1.7628 &&
+            qpos3 > 0.1 && qpos3 < 2.8973 &&
+            qpos4 > 0.1 && qpos4 < 2.8973 && // this is actually wrong
+            qpos5 > 0.1 && qpos5 < 2.8973 &&
+            //qpos6 > 0.1 && qpos6 < 3.1 // this is wrong, too
+            qpos6 > 0.1 && qpos6 < 1.1 // this is good for zero by division exception
         )
         val sin_qpos1 = sin(qpos1)
         val cos_qpos1 = cos(qpos1)
@@ -265,7 +266,13 @@ object Minv {
         // JOINT 3:
         // [[3.2286, 0.0, 0.0, -0.0, -0.214709, -0.126729], [0.0, 3.2286, 0.0, 0.214709, -0.0, 0.0888447], [0.0, 0.0, 3.2286, 0.126729, -0.0888447, -0.0], [0.0, 0.214709, 0.126729, 0.0564949, -0.00824833, -0.00548765], [-0.214709, 0.0, -0.0888447, -0.00824833, 0.0528784, -0.00437726], [-0.126729, 0.0888447, 0.0, -0.00548765, -0.00437726, 0.0182492]]
         // JOINT 4:
-        // [[3.5879, 0.0, 0.0, -0.0, 0.0985021, -0.374644], [0.0, 3.5879, 0.0, -0.0985021, -0.0, -0.190768], [0.0, 0.0, 3.5879, 0.374644, 0.190768, -0.0], [0.0, -0.0985021, 0.374644, 0.0676773, 0.0277158, 0.00390536], [0.0985021, 0.0, 0.190768, 0.0277158, 0.0323994, -0.00164449], [-0.374644, -0.190768, 0.0, 0.00390536, -0.00164449, 0.0775861]]
+        // [
+        //    [3.5879, 0.0, 0.0, -0.0, 0.0985021, -0.374644], 
+        //    [0.0, 3.5879, 0.0, -0.0985021, -0.0, -0.190768], 
+        //    [0.0, 0.0, 3.5879, 0.374644, 0.190768, -0.0], 
+        //    [0.0, -0.0985021, 0.374644, 0.0676773, 0.0277158, 0.00390536], 
+        //    [0.0985021, 0.0, 0.190768, 0.0277158, 0.0323994, -0.00164449],
+        //    [-0.374644, -0.190768, 0.0, 0.00390536, -0.00164449, 0.0775861]]
         // JOINT 5:
         // [
         //    [1.22595, 0.0, 0.0, -0.0, -0.0471217, -0.0503435], 
@@ -484,15 +491,15 @@ object Minv {
         //val temp2_6_3_3 = 0.0
 
         // Now temp2 * R.transpose()
-        //val Bo_6_1_1 = temp2_6_1_1 * limi_rotation_transpose_6_1_1 + temp2_6_1_2 * limi_rotation_transpose_6_2_1 + temp2_6_1_3 * limi_rotation_transpose_6_3_1
-        //val Bo_6_1_2 = temp2_6_1_1 * limi_rotation_transpose_6_1_2 + temp2_6_1_2 * limi_rotation_transpose_6_2_2 + temp2_6_1_3 * limi_rotation_transpose_6_3_2
-        //val Bo_6_1_3 = temp2_6_1_1 * limi_rotation_transpose_6_1_3 + temp2_6_1_2 * limi_rotation_transpose_6_2_3 + temp2_6_1_3 * limi_rotation_transpose_6_3_3
-        //val Bo_6_2_1 = temp2_6_2_1 * limi_rotation_transpose_6_1_1 + temp2_6_2_2 * limi_rotation_transpose_6_2_1 + temp2_6_2_3 * limi_rotation_transpose_6_3_1
-        //val Bo_6_2_2 = temp2_6_2_1 * limi_rotation_transpose_6_1_2 + temp2_6_2_2 * limi_rotation_transpose_6_2_2 + temp2_6_2_3 * limi_rotation_transpose_6_3_2
-        //val Bo_6_2_3 = temp2_6_2_1 * limi_rotation_transpose_6_1_3 + temp2_6_2_2 * limi_rotation_transpose_6_2_3 + temp2_6_2_3 * limi_rotation_transpose_6_3_3
-        //val Bo_6_3_1 = temp2_6_3_1 * limi_rotation_transpose_6_1_1 + temp2_6_3_2 * limi_rotation_transpose_6_2_1 + temp2_6_3_3 * limi_rotation_transpose_6_3_1
-        //val Bo_6_3_2 = temp2_6_3_1 * limi_rotation_transpose_6_1_2 + temp2_6_3_2 * limi_rotation_transpose_6_2_2 + temp2_6_3_3 * limi_rotation_transpose_6_3_2
-        //val Bo_6_3_3 = temp2_6_3_1 * limi_rotation_transpose_6_1_3 + temp2_6_3_2 * limi_rotation_transpose_6_2_3 + temp2_6_3_3 * limi_rotation_transpose_6_3_3
+        //val Bo_temp_6_1_1 = temp2_6_1_1 * limi_rotation_transpose_6_1_1 + temp2_6_1_2 * limi_rotation_transpose_6_2_1 + temp2_6_1_3 * limi_rotation_transpose_6_3_1
+        //val Bo_temp_6_1_2 = temp2_6_1_1 * limi_rotation_transpose_6_1_2 + temp2_6_1_2 * limi_rotation_transpose_6_2_2 + temp2_6_1_3 * limi_rotation_transpose_6_3_2
+        //val Bo_temp_6_1_3 = temp2_6_1_1 * limi_rotation_transpose_6_1_3 + temp2_6_1_2 * limi_rotation_transpose_6_2_3 + temp2_6_1_3 * limi_rotation_transpose_6_3_3
+        //val Bo_temp_6_2_1 = temp2_6_2_1 * limi_rotation_transpose_6_1_1 + temp2_6_2_2 * limi_rotation_transpose_6_2_1 + temp2_6_2_3 * limi_rotation_transpose_6_3_1
+        //val Bo_temp_6_2_2 = temp2_6_2_1 * limi_rotation_transpose_6_1_2 + temp2_6_2_2 * limi_rotation_transpose_6_2_2 + temp2_6_2_3 * limi_rotation_transpose_6_3_2
+        //val Bo_temp_6_2_3 = temp2_6_2_1 * limi_rotation_transpose_6_1_3 + temp2_6_2_2 * limi_rotation_transpose_6_2_3 + temp2_6_2_3 * limi_rotation_transpose_6_3_3
+        //val Bo_temp_6_3_1 = temp2_6_3_1 * limi_rotation_transpose_6_1_1 + temp2_6_3_2 * limi_rotation_transpose_6_2_1 + temp2_6_3_3 * limi_rotation_transpose_6_3_1
+        //val Bo_temp_6_3_2 = temp2_6_3_1 * limi_rotation_transpose_6_1_2 + temp2_6_3_2 * limi_rotation_transpose_6_2_2 + temp2_6_3_3 * limi_rotation_transpose_6_3_2
+        //val Bo_temp_6_3_3 = temp2_6_3_1 * limi_rotation_transpose_6_1_3 + temp2_6_3_2 * limi_rotation_transpose_6_2_3 + temp2_6_3_3 * limi_rotation_transpose_6_3_3
 
         val Bo_temp_6_1_1 = temp2_6_1_1 * limi_rotation_transpose_6_1_1 + temp2_6_1_2 * limi_rotation_transpose_6_2_1
         //val Bo_6_1_2 = 0.0
@@ -525,6 +532,7 @@ object Minv {
         val temp3_6_3_2 = limi_rotation_6_3_1 * 0.007 + limi_rotation_6_3_2 * 0.023
         //val temp3_6_3_3 = 0.0
 
+        // TODO: WRONG, CHECK JOINT 5
         //val Do_temp_6_1_1 = temp3_6_1_1 * limi_rotation_transpose_6_1_1 + temp3_6_1_2 * limi_rotation_transpose_6_2_1 + temp3_6_1_3 * limi_rotation_transpose_6_3_1
         //val Do_temp_6_1_2 = temp3_6_1_1 * limi_rotation_transpose_6_1_2 + temp3_6_1_2 * limi_rotation_transpose_6_2_2 + temp3_6_1_3 * limi_rotation_transpose_6_3_2
         //val Do_temp_6_1_3 = temp3_6_1_1 * limi_rotation_transpose_6_1_3 + temp3_6_1_2 * limi_rotation_transpose_6_2_3 + temp3_6_1_3 * limi_rotation_transpose_6_3_3
@@ -569,7 +577,7 @@ object Minv {
         //val Do_temp2_6_3_2 = Do_temp_6_3_2 //0.0
         val Do_temp2_6_3_3 = Do_temp_6_3_3
 
-        // Now, we'll have 
+        // Now, we'll have TODO: THIS IS WRONG, PLEASE REFER TO JOINT 5 Co
         // Co.col(1) = limi_translation.cross(Ao.col(1)) + Bo.col(1)
         // Co.col(2) = limi_translation.cross(Ao.col(2)) + Bo.col(2)
         // Co.col(3) = limi_translation.cross(Ao.col(3)) + Bo.col(3)
@@ -614,6 +622,7 @@ object Minv {
         val Bo_6_3_2 = Co_6_2_3
         val Bo_6_3_3 = Co_6_3_3
 
+        // TODO: WRONG, CHECK JOINT 5
         // Now, Do = Do_temp2 + limi_translation.cross(Bo)
         //val Do_6_1_1 = Do_temp2_6_1_1 + limi_translation_6_2 * Bo_6_3_1 - limi_translation_6_3 * Bo_6_2_1
         //val Do_6_1_2 = Do_temp2_6_1_2 + limi_translation_6_2 * Bo_6_3_2 - limi_translation_6_3 * Bo_6_2_2
@@ -711,10 +720,482 @@ object Minv {
         //val Ia_5_6_5 = +0.00216405
         val Ia_5_6_6 = Do_6_3_3 + 0.0108695
 
-        Minv
+        // JOINT 5
+        val U_5_1 = Ia_5_1_6
+        val U_5_2 = Ia_5_2_6
+        val U_5_3 = Ia_5_3_6
+        val U_5_4 = Ia_5_4_6
+        //val U_5_5 = Ia_5_6_5 // 0.00216405
+        val U_5_6 = Ia_5_6_6
+
+        val Dinv_5_1 = 1.0 / U_5_6
+        
+        val UDinv_5_1 = U_5_1 * Dinv_5_1
+        val UDinv_5_2 = U_5_2 * Dinv_5_1
+        val UDinv_5_3 = U_5_3 * Dinv_5_1
+        val UDinv_5_4 = U_5_4 * Dinv_5_1
+        val UDinv_5_5 = 0.00216405 * Dinv_5_1
+        val UDinv_5_6 = U_5_6 * Dinv_5_1
+        
+        // Ia -= UDinv * U.transpose()
+        //val Ia_new_5_1_1 = Ia_5_1_1 - UDinv_5_1 * U_5_1
+        //val Ia_new_5_1_2 = Ia_5_1_2 - UDinv_5_1 * U_5_2
+        //val Ia_new_5_1_3 = Ia_5_1_3 - UDinv_5_1 * U_5_3
+        //val Ia_new_5_1_4 = Ia_5_1_4 - UDinv_5_1 * U_5_4
+        //val Ia_new_5_1_5 = Ia_5_1_5 - UDinv_5_1 * U_5_5
+        //val Ia_new_5_1_6 = Ia_5_1_6 - UDinv_5_1 * U_5_6
+        //val Ia_new_5_2_1 = Ia_5_2_1 - UDinv_5_2 * U_5_1
+        //val Ia_new_5_2_2 = Ia_5_2_2 - UDinv_5_2 * U_5_2
+        //val Ia_new_5_2_3 = Ia_5_2_3 - UDinv_5_2 * U_5_3
+        //val Ia_new_5_2_4 = Ia_5_2_4 - UDinv_5_2 * U_5_4
+        //val Ia_new_5_2_5 = Ia_5_2_5 - UDinv_5_2 * U_5_5
+        //val Ia_new_5_2_6 = Ia_5_2_6 - UDinv_5_2 * U_5_6
+        //val Ia_new_5_3_1 = Ia_5_3_1 - UDinv_5_3 * U_5_1
+        //val Ia_new_5_3_2 = Ia_5_3_2 - UDinv_5_3 * U_5_2
+        //val Ia_new_5_3_3 = Ia_5_3_3 - UDinv_5_3 * U_5_3
+        //val Ia_new_5_3_4 = Ia_5_3_4 - UDinv_5_3 * U_5_4
+        //val Ia_new_5_3_5 = Ia_5_3_5 - UDinv_5_3 * U_5_5
+        //val Ia_new_5_3_6 = Ia_5_3_6 - UDinv_5_3 * U_5_6
+        //val Ia_new_5_4_1 = Ia_5_4_1 - UDinv_5_4 * U_5_1
+        //val Ia_new_5_4_2 = Ia_5_4_2 - UDinv_5_4 * U_5_2
+        //val Ia_new_5_4_3 = Ia_5_4_3 - UDinv_5_4 * U_5_3
+        //val Ia_new_5_4_4 = Ia_5_4_4 - UDinv_5_4 * U_5_4
+        //val Ia_new_5_4_5 = Ia_5_4_5 - UDinv_5_4 * U_5_5
+        //val Ia_new_5_4_6 = Ia_5_4_6 - UDinv_5_4 * U_5_6
+        //val Ia_new_5_5_1 = Ia_5_5_1 - UDinv_5_5 * U_5_1
+        //val Ia_new_5_5_2 = Ia_5_5_2 - UDinv_5_5 * U_5_2
+        //val Ia_new_5_5_3 = Ia_5_5_3 - UDinv_5_5 * U_5_3
+        //val Ia_new_5_5_4 = Ia_5_5_4 - UDinv_5_5 * U_5_4
+        //val Ia_new_5_5_5 = Ia_5_5_5 - UDinv_5_5 * U_5_5
+        //val Ia_new_5_5_6 = Ia_5_5_6 - UDinv_5_5 * U_5_6
+        //val Ia_new_5_6_1 = Ia_5_6_1 - UDinv_5_6 * U_5_1
+        //val Ia_new_5_6_2 = Ia_5_6_2 - UDinv_5_6 * U_5_2
+        //val Ia_new_5_6_3 = Ia_5_6_3 - UDinv_5_6 * U_5_3
+        //val Ia_new_5_6_4 = Ia_5_6_4 - UDinv_5_6 * U_5_4
+        //val Ia_new_5_6_5 = Ia_5_6_5 - UDinv_5_6 * U_5_5
+        //val Ia_new_5_6_6 = Ia_5_6_6 - UDinv_5_6 * U_5_6
+
+        val Ia_new_5_1_1 = Ia_5_1_1 - UDinv_5_1 * U_5_1
+        val Ia_new_5_1_2 = -UDinv_5_1 * U_5_2
+        val Ia_new_5_1_3 = Ia_5_1_3 - UDinv_5_1 * U_5_3
+        val Ia_new_5_1_4 = Ia_5_1_4 - UDinv_5_1 * U_5_4
+        val Ia_new_5_1_5 = -0.0471217 - UDinv_5_1 * 0.00216405
+        val Ia_new_5_1_6 = Ia_5_1_6 - UDinv_5_1 * U_5_6
+        val Ia_new_5_2_1 = -UDinv_5_2 * U_5_1
+        val Ia_new_5_2_2 = 3.62795 - UDinv_5_2 * U_5_2
+        val Ia_new_5_2_3 = -UDinv_5_2 * U_5_3
+        val Ia_new_5_2_4 = Ia_5_2_4 - UDinv_5_2 * U_5_4
+        val Ia_new_5_2_5 = -UDinv_5_2 * 0.00216405
+        val Ia_new_5_2_6 = Ia_5_2_6 - UDinv_5_2 * U_5_6
+        val Ia_new_5_3_1 = Ia_5_3_1 - UDinv_5_3 * U_5_1
+        val Ia_new_5_3_2 = -UDinv_5_3 * U_5_2
+        val Ia_new_5_3_3 = Ia_5_3_3 - UDinv_5_3 * U_5_3
+        val Ia_new_5_3_4 = Ia_5_3_4 - UDinv_5_3 * U_5_4
+        val Ia_new_5_3_5 = 0.0156537 - UDinv_5_3 * 0.00216405
+        val Ia_new_5_3_6 = Ia_5_3_6 - UDinv_5_3 * U_5_6
+        val Ia_new_5_4_1 = Ia_5_4_1 - UDinv_5_4 * U_5_1
+        val Ia_new_5_4_2 = Ia_5_4_2 - UDinv_5_4 * U_5_2
+        val Ia_new_5_4_3 = Ia_5_4_3 - UDinv_5_4 * U_5_3
+        val Ia_new_5_4_4 = Ia_5_4_4 - UDinv_5_4 * U_5_4
+        val Ia_new_5_4_5 = -0.00151524 - UDinv_5_4 * 0.00216405
+        val Ia_new_5_4_6 = Ia_5_4_6 - UDinv_5_4 * U_5_6
+        val Ia_new_5_5_1 = 0.0471217 - UDinv_5_5 * U_5_1
+        val Ia_new_5_5_2 = 0.0 - UDinv_5_5 * U_5_2
+        val Ia_new_5_5_3 = 0.0146537 - UDinv_5_5 * U_5_3
+        val Ia_new_5_5_4 = 0.00151524 - UDinv_5_5 * U_5_4
+        val Ia_new_5_5_5 = 0.0314604 - UDinv_5_5 * 0.00216405
+        val Ia_new_5_5_6 = -0.00216405 - UDinv_5_5 * U_5_6
+        val Ia_new_5_6_1 = Ia_5_6_1 - UDinv_5_6 * U_5_1
+        val Ia_new_5_6_2 = Ia_5_6_2 - UDinv_5_6 * U_5_2
+        val Ia_new_5_6_3 = Ia_5_6_3 - UDinv_5_6 * U_5_3
+        val Ia_new_5_6_4 = Ia_5_6_4 - UDinv_5_6 * U_5_4
+        val Ia_new_5_6_5 = 0.00216405 - UDinv_5_6 * 0.00216405
+        val Ia_new_5_6_6 = Ia_5_6_6 - UDinv_5_6 * U_5_6
+
+        
+        // Yaba[4] += acton(limi[5], Ia)
+        // Ai = Ia[0:3][0:3]
+        
+        val Ai_5_1_1 = Ia_new_5_1_1
+        val Ai_5_1_2 = Ia_new_5_1_2
+        val Ai_5_1_3 = Ia_new_5_1_3
+        val Ai_5_2_1 = Ia_new_5_2_1
+        val Ai_5_2_2 = Ia_new_5_2_2
+        val Ai_5_2_3 = Ia_new_5_2_3
+        val Ai_5_3_1 = Ia_new_5_3_1
+        val Ai_5_3_2 = Ia_new_5_3_2
+        val Ai_5_3_3 = Ia_new_5_3_3
+        
+        // Bi = Ia[0:3][3:6]
+        val Bi_5_1_1 = Ia_new_5_1_4 
+        val Bi_5_1_2 = Ia_new_5_1_5 
+        val Bi_5_1_3 = Ia_new_5_1_6 
+        val Bi_5_2_1 = Ia_new_5_2_4 
+        val Bi_5_2_2 = Ia_new_5_2_5 
+        val Bi_5_2_3 = Ia_new_5_2_6 
+        val Bi_5_3_1 = Ia_new_5_3_4 
+        val Bi_5_3_2 = Ia_new_5_3_5 
+        val Bi_5_3_3 = Ia_new_5_3_6 
+
+        // Ci = Ia[3:6][0:3]
+        val Ci_5_1_1 = Ia_new_5_4_1
+        val Ci_5_1_2 = Ia_new_5_4_2
+        val Ci_5_1_3 = Ia_new_5_4_3
+        val Ci_5_2_1 = Ia_new_5_5_1
+        val Ci_5_2_2 = Ia_new_5_5_2
+        val Ci_5_2_3 = Ia_new_5_5_3
+        val Ci_5_3_1 = Ia_new_5_6_1
+        val Ci_5_3_2 = Ia_new_5_6_2
+        val Ci_5_3_3 = Ia_new_5_6_3
+
+        // Di = Ia[3:6][3:6]
+        val Di_5_1_1 = Ia_new_5_4_4
+        val Di_5_1_2 = Ia_new_5_4_5
+        val Di_5_1_3 = Ia_new_5_4_6
+        val Di_5_2_1 = Ia_new_5_5_4
+        val Di_5_2_2 = Ia_new_5_5_5
+        val Di_5_2_3 = Ia_new_5_5_6
+        val Di_5_3_1 = Ia_new_5_6_4
+        val Di_5_3_2 = Ia_new_5_6_5
+        val Di_5_3_3 = Ia_new_5_6_6
+
+        // Ai, Bi, Ci and Di will be updated, and these values will update limi[6] and Ia
+        // I am skipping Ia updates because this joint's Ia and limi will not be used anymore
+        // TODO: This may change in future, BE CAREFUL!
+
+        // a temp variable will be R * Ai
+        //val temp1_5_1_1 = limi_rotation_5_1_1 * Ai_5_1_1 + limi_rotation_5_1_2 * Ai_5_2_1 + limi_rotation_5_1_3 * Ai_5_3_1
+        //val temp1_5_1_2 = limi_rotation_5_1_1 * Ai_5_1_2 + limi_rotation_5_1_2 * Ai_5_2_2 + limi_rotation_5_1_3 * Ai_5_3_2
+        //val temp1_5_1_3 = limi_rotation_5_1_1 * Ai_5_1_3 + limi_rotation_5_1_2 * Ai_5_2_3 + limi_rotation_5_1_3 * Ai_5_3_3
+        //val temp1_5_2_1 = limi_rotation_5_2_1 * Ai_5_1_1 + limi_rotation_5_2_2 * Ai_5_2_1 + limi_rotation_5_2_3 * Ai_5_3_1
+        //val temp1_5_2_2 = limi_rotation_5_2_1 * Ai_5_1_2 + limi_rotation_5_2_2 * Ai_5_2_2 + limi_rotation_5_2_3 * Ai_5_3_2
+        //val temp1_5_2_3 = limi_rotation_5_2_1 * Ai_5_1_3 + limi_rotation_5_2_2 * Ai_5_2_3 + limi_rotation_5_2_3 * Ai_5_3_3
+        //val temp1_5_3_1 = limi_rotation_5_3_1 * Ai_5_1_1 + limi_rotation_5_3_2 * Ai_5_2_1 + limi_rotation_5_3_3 * Ai_5_3_1
+        //val temp1_5_3_2 = limi_rotation_5_3_1 * Ai_5_1_2 + limi_rotation_5_3_2 * Ai_5_2_2 + limi_rotation_5_3_3 * Ai_5_3_2
+        //val temp1_5_3_3 = limi_rotation_5_3_1 * Ai_5_1_3 + limi_rotation_5_3_2 * Ai_5_2_3 + limi_rotation_5_3_3 * Ai_5_3_3
+
+        val temp1_5_1_1 = limi_rotation_5_1_1 * Ai_5_1_1 + limi_rotation_5_1_2 * Ai_5_2_1
+        val temp1_5_1_2 = limi_rotation_5_1_1 * Ai_5_1_2 + limi_rotation_5_1_2 * Ai_5_2_2
+        val temp1_5_1_3 = limi_rotation_5_1_1 * Ai_5_1_3 + limi_rotation_5_1_2 * Ai_5_2_3
+        val temp1_5_2_1 = Ai_5_3_1
+        val temp1_5_2_2 = Ai_5_3_2
+        val temp1_5_2_3 = Ai_5_3_3
+        val temp1_5_3_1 = limi_rotation_5_3_1 * Ai_5_1_1 + limi_rotation_5_3_2 * Ai_5_2_1
+        val temp1_5_3_2 = limi_rotation_5_3_1 * Ai_5_1_2 + limi_rotation_5_3_2 * Ai_5_2_2
+        val temp1_5_3_3 = limi_rotation_5_3_1 * Ai_5_1_3 + limi_rotation_5_3_2 * Ai_5_2_3
         
 
-    } ensuring(res => res +/- 1e-10)
+        // now Ao = temp1 * R.transpose()
+        //val limi_rotation_transpose_5_1_1 = limi_rotation_5_1_1
+        //val limi_rotation_transpose_5_1_2 = limi_rotation_5_2_1
+        //val limi_rotation_transpose_5_1_3 = limi_rotation_5_3_1
+        //val limi_rotation_transpose_5_2_1 = limi_rotation_5_1_2
+        //val limi_rotation_transpose_5_2_2 = limi_rotation_5_2_2
+        //val limi_rotation_transpose_5_2_3 = limi_rotation_5_3_2
+        //val limi_rotation_transpose_5_3_1 = limi_rotation_5_1_3
+        //val limi_rotation_transpose_5_3_2 = limi_rotation_5_2_3
+        //val limi_rotation_transpose_5_3_3 = limi_rotation_5_3_3
+
+        val limi_rotation_transpose_5_1_1 = limi_rotation_5_1_1
+        //val limi_rotation_transpose_5_1_2 = 0.0
+        val limi_rotation_transpose_5_1_3 = limi_rotation_5_3_1
+        val limi_rotation_transpose_5_2_1 = limi_rotation_5_1_2
+        //val limi_rotation_transpose_5_2_2 = 0.0
+        val limi_rotation_transpose_5_2_3 = limi_rotation_5_3_2
+        //val limi_rotation_transpose_5_3_1 = 0.0
+        //val limi_rotation_transpose_5_3_2 = 1.0
+        //val limi_rotation_transpose_5_3_3 = 0.0
+        
+        //val Ao_5_1_1 = temp1_5_1_1 * limi_rotation_transpose_5_1_1 + temp1_5_1_2 * limi_rotation_transpose_5_2_1 + temp1_5_1_3 * limi_rotation_transpose_5_3_1
+        //val Ao_5_1_2 = temp1_5_1_1 * limi_rotation_transpose_5_1_2 + temp1_5_1_2 * limi_rotation_transpose_5_2_2 + temp1_5_1_3 * limi_rotation_transpose_5_3_2
+        //val Ao_5_1_3 = temp1_5_1_1 * limi_rotation_transpose_5_1_3 + temp1_5_1_2 * limi_rotation_transpose_5_2_3 + temp1_5_1_3 * limi_rotation_transpose_5_3_3
+        //val Ao_5_2_1 = temp1_5_2_1 * limi_rotation_transpose_5_1_1 + temp1_5_2_2 * limi_rotation_transpose_5_2_1 + temp1_5_2_3 * limi_rotation_transpose_5_3_1
+        //val Ao_5_2_2 = temp1_5_2_1 * limi_rotation_transpose_5_1_2 + temp1_5_2_2 * limi_rotation_transpose_5_2_2 + temp1_5_2_3 * limi_rotation_transpose_5_3_2
+        //val Ao_5_2_3 = temp1_5_2_1 * limi_rotation_transpose_5_1_3 + temp1_5_2_2 * limi_rotation_transpose_5_2_3 + temp1_5_2_3 * limi_rotation_transpose_5_3_3
+        //val Ao_5_3_1 = temp1_5_3_1 * limi_rotation_transpose_5_1_1 + temp1_5_3_2 * limi_rotation_transpose_5_2_1 + temp1_5_3_3 * limi_rotation_transpose_5_3_1
+        //val Ao_5_3_2 = temp1_5_3_1 * limi_rotation_transpose_5_1_2 + temp1_5_3_2 * limi_rotation_transpose_5_2_2 + temp1_5_3_3 * limi_rotation_transpose_5_3_2
+        //val Ao_5_3_3 = temp1_5_3_1 * limi_rotation_transpose_5_1_3 + temp1_5_3_2 * limi_rotation_transpose_5_2_3 + temp1_5_3_3 * limi_rotation_transpose_5_3_3
+
+        val Ao_5_1_1 = temp1_5_1_1 * limi_rotation_transpose_5_1_1 + temp1_5_1_2 * limi_rotation_transpose_5_2_1
+        val Ao_5_1_2 = temp1_5_1_3
+        val Ao_5_1_3 = temp1_5_1_1 * limi_rotation_transpose_5_1_3 + temp1_5_1_2 * limi_rotation_transpose_5_2_3
+        val Ao_5_2_1 = temp1_5_2_1 * limi_rotation_transpose_5_1_1 + temp1_5_2_2 * limi_rotation_transpose_5_2_1
+        val Ao_5_2_2 = temp1_5_2_3
+        val Ao_5_2_3 = temp1_5_2_1 * limi_rotation_transpose_5_1_3 + temp1_5_2_2 * limi_rotation_transpose_5_2_3
+        val Ao_5_3_1 = temp1_5_3_1 * limi_rotation_transpose_5_1_1 + temp1_5_3_2 * limi_rotation_transpose_5_2_1
+        val Ao_5_3_2 = temp1_5_3_3
+        val Ao_5_3_3 = temp1_5_3_1 * limi_rotation_transpose_5_1_3 + temp1_5_3_2 * limi_rotation_transpose_5_2_3
+
+        // a temp variable will be R * Bi, then Bo = temp2 * R.transpose()
+        //val temp2_6_1_1 = limi_rotation_6_1_1 * Bi_6_1_1 + limi_rotation_6_1_2 * Bi_6_2_1 + limi_rotation_6_1_3 * Bi_6_3_1
+        //val temp2_6_1_2 = limi_rotation_6_1_1 * Bi_6_1_2 + limi_rotation_6_1_2 * Bi_6_2_2 + limi_rotation_6_1_3 * Bi_6_3_2
+        //val temp2_6_1_3 = limi_rotation_6_1_1 * Bi_6_1_3 + limi_rotation_6_1_2 * Bi_6_2_3 + limi_rotation_6_1_3 * Bi_6_3_3
+        //val temp2_6_2_1 = limi_rotation_6_2_1 * Bi_6_1_1 + limi_rotation_6_2_2 * Bi_6_2_1 + limi_rotation_6_2_3 * Bi_6_3_1
+        //val temp2_6_2_2 = limi_rotation_6_2_1 * Bi_6_1_2 + limi_rotation_6_2_2 * Bi_6_2_2 + limi_rotation_6_2_3 * Bi_6_3_2
+        //val temp2_6_2_3 = limi_rotation_6_2_1 * Bi_6_1_3 + limi_rotation_6_2_2 * Bi_6_2_3 + limi_rotation_6_2_3 * Bi_6_3_3
+        //val temp2_6_3_1 = limi_rotation_6_3_1 * Bi_6_1_1 + limi_rotation_6_3_2 * Bi_6_2_1 + limi_rotation_6_3_3 * Bi_6_3_1
+        //val temp2_6_3_2 = limi_rotation_6_3_1 * Bi_6_1_2 + limi_rotation_6_3_2 * Bi_6_2_2 + limi_rotation_6_3_3 * Bi_6_3_2
+        //val temp2_6_3_3 = limi_rotation_6_3_1 * Bi_6_1_3 + limi_rotation_6_3_2 * Bi_6_2_3 + limi_rotation_6_3_3 * Bi_6_3_3
+
+        val temp2_5_1_1 = limi_rotation_5_1_1 * Bi_5_1_1 + limi_rotation_5_1_2 * Bi_5_2_1
+        val temp2_5_1_2 = limi_rotation_5_1_1 * Bi_5_1_2 + limi_rotation_5_1_2 * Bi_5_2_2
+        val temp2_5_1_3 = limi_rotation_5_1_1 * Bi_5_1_3 + limi_rotation_5_1_2 * Bi_5_2_3
+        val temp2_5_2_1 = Bi_5_3_1
+        val temp2_5_2_2 = Bi_5_3_2
+        val temp2_5_2_3 = Bi_5_3_3
+        val temp2_5_3_1 = limi_rotation_5_3_1 * Bi_5_1_1 + limi_rotation_5_3_2 * Bi_5_2_1
+        val temp2_5_3_2 = limi_rotation_5_3_1 * Bi_5_1_2 + limi_rotation_5_3_2 * Bi_5_2_2
+        val temp2_5_3_3 = limi_rotation_5_3_1 * Bi_5_1_3 + limi_rotation_5_3_2 * Bi_5_2_3
+
+        // Now temp2 * R.transpose()
+        //val Bo_temp_6_1_1 = temp2_6_1_1 * limi_rotation_transpose_6_1_1 + temp2_6_1_2 * limi_rotation_transpose_6_2_1 + temp2_6_1_3 * limi_rotation_transpose_6_3_1
+        //val Bo_temp_6_1_2 = temp2_6_1_1 * limi_rotation_transpose_6_1_2 + temp2_6_1_2 * limi_rotation_transpose_6_2_2 + temp2_6_1_3 * limi_rotation_transpose_6_3_2
+        //val Bo_temp_6_1_3 = temp2_6_1_1 * limi_rotation_transpose_6_1_3 + temp2_6_1_2 * limi_rotation_transpose_6_2_3 + temp2_6_1_3 * limi_rotation_transpose_6_3_3
+        //val Bo_temp_6_2_1 = temp2_6_2_1 * limi_rotation_transpose_6_1_1 + temp2_6_2_2 * limi_rotation_transpose_6_2_1 + temp2_6_2_3 * limi_rotation_transpose_6_3_1
+        //val Bo_temp_6_2_2 = temp2_6_2_1 * limi_rotation_transpose_6_1_2 + temp2_6_2_2 * limi_rotation_transpose_6_2_2 + temp2_6_2_3 * limi_rotation_transpose_6_3_2
+        //val Bo_temp_6_2_3 = temp2_6_2_1 * limi_rotation_transpose_6_1_3 + temp2_6_2_2 * limi_rotation_transpose_6_2_3 + temp2_6_2_3 * limi_rotation_transpose_6_3_3
+        //val Bo_temp_6_3_1 = temp2_6_3_1 * limi_rotation_transpose_6_1_1 + temp2_6_3_2 * limi_rotation_transpose_6_2_1 + temp2_6_3_3 * limi_rotation_transpose_6_3_1
+        //val Bo_temp_6_3_2 = temp2_6_3_1 * limi_rotation_transpose_6_1_2 + temp2_6_3_2 * limi_rotation_transpose_6_2_2 + temp2_6_3_3 * limi_rotation_transpose_6_3_2
+        //val Bo_temp_6_3_3 = temp2_6_3_1 * limi_rotation_transpose_6_1_3 + temp2_6_3_2 * limi_rotation_transpose_6_2_3 + temp2_6_3_3 * limi_rotation_transpose_6_3_3
+
+        val Bo_temp_5_1_1 = temp2_5_1_1 * limi_rotation_transpose_5_1_1 + temp2_5_1_2 * limi_rotation_transpose_5_2_1
+        val Bo_temp_5_1_2 = temp2_5_1_3
+        val Bo_temp_5_1_3 = temp2_5_1_1 * limi_rotation_transpose_5_1_3 + temp2_5_1_2 * limi_rotation_transpose_5_2_3
+        val Bo_temp_5_2_1 = temp2_5_2_1 * limi_rotation_transpose_5_1_1 + temp2_5_2_2 * limi_rotation_transpose_5_2_1
+        val Bo_temp_5_2_2 = temp2_5_2_3
+        val Bo_temp_5_2_3 = temp2_5_2_1 * limi_rotation_transpose_5_1_3 + temp2_5_2_2 * limi_rotation_transpose_5_2_3
+        val Bo_temp_5_3_1 = temp2_5_3_1 * limi_rotation_transpose_5_1_1 + temp2_5_3_2 * limi_rotation_transpose_5_2_1
+        val Bo_temp_5_3_2 = temp2_5_3_3
+        val Bo_temp_5_3_3 = temp2_5_3_1 * limi_rotation_transpose_5_1_3 + temp2_5_3_2 * limi_rotation_transpose_5_2_3
+
+        // a temp variable will be R * Di, then Do_temp = temp3 * R.transpose()
+        //val temp3_6_1_1 = limi_rotation_6_1_1 * Di_6_1_1 + limi_rotation_6_1_2 * Di_6_2_1 + limi_rotation_6_1_3 * Di_6_3_1
+        //val temp3_6_1_2 = limi_rotation_6_1_1 * Di_6_1_2 + limi_rotation_6_1_2 * Di_6_2_2 + limi_rotation_6_1_3 * Di_6_3_2
+        //val temp3_6_1_3 = limi_rotation_6_1_1 * Di_6_1_3 + limi_rotation_6_1_2 * Di_6_2_3 + limi_rotation_6_1_3 * Di_6_3_3
+        //val temp3_6_2_1 = limi_rotation_6_2_1 * Di_6_1_1 + limi_rotation_6_2_2 * Di_6_2_1 + limi_rotation_6_2_3 * Di_6_3_1
+        //val temp3_6_2_2 = limi_rotation_6_2_1 * Di_6_1_2 + limi_rotation_6_2_2 * Di_6_2_2 + limi_rotation_6_2_3 * Di_6_3_2
+        //val temp3_6_2_3 = limi_rotation_6_2_1 * Di_6_1_3 + limi_rotation_6_2_2 * Di_6_2_3 + limi_rotation_6_2_3 * Di_6_3_3
+        //val temp3_6_3_1 = limi_rotation_6_3_1 * Di_6_1_1 + limi_rotation_6_3_2 * Di_6_2_1 + limi_rotation_6_3_3 * Di_6_3_1
+        //val temp3_6_3_2 = limi_rotation_6_3_1 * Di_6_1_2 + limi_rotation_6_3_2 * Di_6_2_2 + limi_rotation_6_3_3 * Di_6_3_2
+        //val temp3_6_3_3 = limi_rotation_6_3_1 * Di_6_1_3 + limi_rotation_6_3_2 * Di_6_2_3 + limi_rotation_6_3_3 * Di_6_3_3
+
+        val temp3_5_1_1 = limi_rotation_5_1_1 * Di_5_1_1 + limi_rotation_5_1_2 * Di_5_2_1
+        val temp3_5_1_2 = limi_rotation_5_1_1 * Di_5_1_2 + limi_rotation_5_1_2 * Di_5_2_2
+        val temp3_5_1_3 = limi_rotation_5_1_1 * Di_5_1_3 + limi_rotation_5_1_2 * Di_5_2_3
+        val temp3_5_2_1 = Di_5_3_1
+        val temp3_5_2_2 = Di_5_3_2
+        val temp3_5_2_3 = Di_5_3_3
+        val temp3_5_3_1 = limi_rotation_5_3_1 * Di_5_1_1 + limi_rotation_5_3_2 * Di_5_2_1
+        val temp3_5_3_2 = limi_rotation_5_3_1 * Di_5_1_2 + limi_rotation_5_3_2 * Di_5_2_2
+        val temp3_5_3_3 = limi_rotation_5_3_1 * Di_5_1_3 + limi_rotation_5_3_2 * Di_5_2_3
+
+        //val Do_temp_6_1_1 = temp3_6_1_1 * limi_rotation_transpose_6_1_1 + temp3_6_1_2 * limi_rotation_transpose_6_2_1 + temp3_6_1_3 * limi_rotation_transpose_6_3_1
+        //val Do_temp_6_1_2 = temp3_6_1_1 * limi_rotation_transpose_6_1_2 + temp3_6_1_2 * limi_rotation_transpose_6_2_2 + temp3_6_1_3 * limi_rotation_transpose_6_3_2
+        //val Do_temp_6_1_3 = temp3_6_1_1 * limi_rotation_transpose_6_1_3 + temp3_6_1_2 * limi_rotation_transpose_6_2_3 + temp3_6_1_3 * limi_rotation_transpose_6_3_3
+        //val Do_temp_6_2_1 = temp3_6_2_1 * limi_rotation_transpose_6_1_1 + temp3_6_2_2 * limi_rotation_transpose_6_2_1 + temp3_6_2_3 * limi_rotation_transpose_6_3_1
+        //val Do_temp_6_2_2 = temp3_6_2_1 * limi_rotation_transpose_6_1_2 + temp3_6_2_2 * limi_rotation_transpose_6_2_2 + temp3_6_2_3 * limi_rotation_transpose_6_3_2
+        //val Do_temp_6_2_3 = temp3_6_2_1 * limi_rotation_transpose_6_1_3 + temp3_6_2_2 * limi_rotation_transpose_6_2_3 + temp3_6_2_3 * limi_rotation_transpose_6_3_3
+        //val Do_temp_6_3_1 = temp3_6_3_1 * limi_rotation_transpose_6_1_1 + temp3_6_3_2 * limi_rotation_transpose_6_2_1 + temp3_6_3_3 * limi_rotation_transpose_6_3_1
+        //val Do_temp_6_3_2 = temp3_6_3_1 * limi_rotation_transpose_6_1_2 + temp3_6_3_2 * limi_rotation_transpose_6_2_2 + temp3_6_3_3 * limi_rotation_transpose_6_3_2
+        //val Do_temp_6_3_3 = temp3_6_3_1 * limi_rotation_transpose_6_1_3 + temp3_6_3_2 * limi_rotation_transpose_6_2_3 + temp3_6_3_3 * limi_rotation_transpose_6_3_3
+
+        val Do_temp_5_1_1 = temp3_5_1_1 * limi_rotation_transpose_5_1_1 + temp3_5_1_2 * limi_rotation_transpose_5_2_1
+        val Do_temp_5_1_2 = temp3_5_1_3
+        val Do_temp_5_1_3 = temp3_5_1_1 * limi_rotation_transpose_5_1_3 + temp3_5_1_2 * limi_rotation_transpose_5_2_3
+        val Do_temp_5_2_1 = temp3_5_2_1 * limi_rotation_transpose_5_1_1 + temp3_5_2_2 * limi_rotation_transpose_5_2_1
+        val Do_temp_5_2_2 = temp3_5_2_3
+        val Do_temp_5_2_3 = temp3_5_2_1 * limi_rotation_transpose_5_1_3 + temp3_5_2_2 * limi_rotation_transpose_5_2_3
+        val Do_temp_5_3_1 = temp3_5_3_1 * limi_rotation_transpose_5_1_1 + temp3_5_3_2 * limi_rotation_transpose_5_2_1
+        val Do_temp_5_3_2 = temp3_5_3_3
+        val Do_temp_5_3_3 = temp3_5_3_1 * limi_rotation_transpose_5_1_3 + temp3_5_3_2 * limi_rotation_transpose_5_2_3
+
+        // Then, we'll have 
+        // Do_temp2.row(1) = limi_translation.cross(Bo_temp.col(1)) + Do_temp.row(1)
+        // Do_temp2.row(2) = limi_translation.cross(Bo_temp.col(2)) + Do_temp.row(2)
+        // Do_temp2.row(3) = limi_translation.cross(Bo_temp.col(3)) + Do_temp.row(3)
+        //val Do_temp2_5_1_1 = limi_translation_5_2 * Bo_temp_5_1_3 - limi_translation_5_3 * Bo_temp_5_1_2 + Do_temp_5_1_1
+        //val Do_temp2_5_2_1 = limi_translation_5_3 * Bo_temp_5_1_1 - limi_translation_5_1 * Bo_temp_5_1_3 + Do_temp_5_2_1
+        //val Do_temp2_5_3_1 = limi_translation_5_1 * Bo_temp_5_1_2 - limi_translation_5_2 * Bo_temp_5_1_1 + Do_temp_5_3_1
+        //val Do_temp2_5_1_2 = limi_translation_5_2 * Bo_temp_5_2_3 - limi_translation_5_3 * Bo_temp_5_2_2 + Do_temp_5_1_2
+        //val Do_temp2_5_2_2 = limi_translation_5_3 * Bo_temp_5_2_1 - limi_translation_5_1 * Bo_temp_5_2_3 + Do_temp_5_2_2
+        //val Do_temp2_5_3_2 = limi_translation_5_1 * Bo_temp_5_2_2 - limi_translation_5_2 * Bo_temp_5_2_1 + Do_temp_5_3_2
+        //val Do_temp2_5_1_3 = limi_translation_5_2 * Bo_temp_5_3_3 - limi_translation_5_3 * Bo_temp_5_3_2 + Do_temp_5_1_3
+        //val Do_temp2_5_2_3 = limi_translation_5_3 * Bo_temp_5_3_1 - limi_translation_5_1 * Bo_temp_5_3_3 + Do_temp_5_2_3
+        //val Do_temp2_5_3_3 = limi_translation_5_1 * Bo_temp_5_3_2 - limi_translation_5_2 * Bo_temp_5_3_1 + Do_temp_5_3_3
+
+        val Do_temp2_5_1_1 = 0.384 * Bo_temp_5_1_3 + Do_temp_5_1_1
+        val Do_temp2_5_1_2 = 0.083 * Bo_temp_5_1_3 + Do_temp_5_1_2
+        val Do_temp2_5_1_3 = -0.083 * Bo_temp_5_1_2 - 0.384 * Bo_temp_5_1_1 + Do_temp_5_1_3
+        val Do_temp2_5_2_1 = 0.384 * Bo_temp_5_2_3 + Do_temp_5_2_1
+        val Do_temp2_5_2_2 = 0.083 * Bo_temp_5_2_3 + Do_temp_5_2_2
+        val Do_temp2_5_2_3 = -0.083 * Bo_temp_5_2_2 - 0.384 * Bo_temp_5_2_1 + Do_temp_5_2_3
+        val Do_temp2_5_3_1 = 0.384 * Bo_temp_5_3_3 + Do_temp_5_3_1
+        val Do_temp2_5_3_2 = 0.083 * Bo_temp_5_3_3 + Do_temp_5_3_2
+        val Do_temp2_5_3_3 = -0.083 * Bo_temp_5_3_2 - 0.384 * Bo_temp_5_3_1 + Do_temp_5_3_3
+
+        // Now, we'll have 
+        // Co.col(1) = limi_translation.cross(Ao.col(1)) + Bo.col(1)
+        // Co.col(2) = limi_translation.cross(Ao.col(2)) + Bo.col(2)
+        // Co.col(3) = limi_translation.cross(Ao.col(3)) + Bo.col(3)
+        //val Co_5_1_1 = limi_translation_5_2 * Ao_5_1_3 - limi_translation_5_3 * Ao_5_1_2 + Bo_temp_5_1_1
+        //val Co_5_1_2 = limi_translation_5_3 * Ao_5_1_1 - limi_translation_5_1 * Ao_5_1_3 + Bo_temp_5_1_2
+        //val Co_5_1_3 = limi_translation_5_1 * Ao_5_1_2 - limi_translation_5_2 * Ao_5_1_1 + Bo_temp_5_1_3
+        //val Co_5_2_1 = limi_translation_5_2 * Ao_5_2_3 - limi_translation_5_3 * Ao_5_2_2 + Bo_temp_5_2_1
+        //val Co_5_2_2 = limi_translation_5_3 * Ao_5_2_1 - limi_translation_5_1 * Ao_5_2_3 + Bo_temp_5_2_2
+        //val Co_5_2_3 = limi_translation_5_1 * Ao_5_2_2 - limi_translation_5_2 * Ao_5_2_1 + Bo_temp_5_2_3
+        //val Co_5_3_1 = limi_translation_5_2 * Ao_5_3_3 - limi_translation_5_3 * Ao_5_3_2 + Bo_temp_5_3_1
+        //val Co_5_3_2 = limi_translation_5_3 * Ao_5_3_1 - limi_translation_5_1 * Ao_5_3_3 + Bo_temp_5_3_2
+        //val Co_5_3_3 = limi_translation_5_1 * Ao_5_3_2 - limi_translation_5_2 * Ao_5_3_1 + Bo_temp_5_3_3
+
+        val Co_5_1_1 = 0.384 * Ao_5_1_3 + Bo_temp_5_1_1
+        val Co_5_2_1 = 0.083 * Ao_5_1_3 + Bo_temp_5_1_2
+        val Co_5_3_1 = -0.083 * Ao_5_1_2 - 0.384 * Ao_5_1_1 + Bo_temp_5_1_3
+        val Co_5_1_2 = 0.384 * Ao_5_2_3 + Bo_temp_5_2_1
+        val Co_5_2_2 = 0.083 * Ao_5_2_3 + Bo_temp_5_2_2
+        val Co_5_3_2 = -0.083 * Ao_5_2_2 - 0.384 * Ao_5_2_1 + Bo_temp_5_2_3
+        val Co_5_1_3 = 0.384 * Ao_5_3_3 + Bo_temp_5_3_1
+        val Co_5_2_3 = 0.083 * Ao_5_3_3 + Bo_temp_5_3_2
+        val Co_5_3_3 = -0.083 * Ao_5_3_2 - 0.384 * Ao_5_3_1 + Bo_temp_5_3_3
+
+        // Now, we'll have Bo = Co.transpose()
+        //val Bo_5_1_1 = Co_5_1_1
+        //val Bo_5_1_2 = Co_5_2_1
+        //val Bo_5_1_3 = Co_5_3_1
+        //val Bo_5_2_1 = Co_5_1_2
+        //val Bo_5_2_2 = Co_5_2_2
+        //val Bo_5_2_3 = Co_5_3_2
+        //val Bo_5_3_1 = Co_5_1_3
+        //val Bo_5_3_2 = Co_5_2_3
+        //val Bo_5_3_3 = Co_5_3_3
+
+        val Bo_5_1_1 = Co_5_1_1
+        val Bo_5_1_2 = Co_5_2_1
+        val Bo_5_1_3 = Co_5_3_1
+        val Bo_5_2_1 = Co_5_1_2
+        val Bo_5_2_2 = Co_5_2_2
+        val Bo_5_2_3 = Co_5_3_2
+        val Bo_5_3_1 = Co_5_1_3
+        val Bo_5_3_2 = Co_5_2_3
+        val Bo_5_3_3 = Co_5_3_3
+
+        // Now, Do = Do_temp2 + limi_translation.cross(Bo)
+        //val Do_5_1_1 = -limi_translation_5_2 * Bo_5_1_3 + limi_translation_5_3 * Bo_5_1_2 + Do_temp2_5_1_1
+        //val Do_5_1_2 = -limi_translation_5_3 * Bo_5_1_1 + limi_translation_5_1 * Bo_5_1_3 + Do_temp2_5_1_2
+        //val Do_5_1_3 = -limi_translation_5_1 * Bo_5_1_2 + limi_translation_5_2 * Bo_5_1_1 + Do_temp2_5_1_3
+        //val Do_5_2_1 = -limi_translation_5_2 * Bo_5_2_3 + limi_translation_5_3 * Bo_5_2_2 + Do_temp2_5_2_1
+        //val Do_5_2_2 = -limi_translation_5_3 * Bo_5_2_1 + limi_translation_5_1 * Bo_5_2_3 + Do_temp2_5_2_2
+        //val Do_5_2_3 = -limi_translation_5_1 * Bo_5_2_2 + limi_translation_5_2 * Bo_5_2_1 + Do_temp2_5_2_3
+        //val Do_5_3_1 = -limi_translation_5_2 * Bo_5_3_3 + limi_translation_5_3 * Bo_5_3_2 + Do_temp2_5_3_1
+        //val Do_5_3_2 = -limi_translation_5_3 * Bo_5_3_1 + limi_translation_5_1 * Bo_5_3_3 + Do_temp2_5_3_2
+        //val Do_5_3_3 = -limi_translation_5_1 * Bo_5_3_2 + limi_translation_5_2 * Bo_5_3_1 + Do_temp2_5_3_3
+
+        val Do_5_1_1 = -0.384 * Bo_5_1_3                    + Do_temp2_5_1_1
+        val Do_5_2_1 = -0.083 * Bo_5_1_3                    + Do_temp2_5_1_2
+        val Do_5_3_1 = 0.083 * Bo_5_1_2 + 0.384 * Bo_5_1_1  + Do_temp2_5_1_3
+        val Do_5_1_2 = -0.384 * Bo_5_2_3                    + Do_temp2_5_2_1
+        val Do_5_2_2 = -0.083 * Bo_5_2_3                    + Do_temp2_5_2_2
+        val Do_5_3_2 = 0.083 * Bo_5_2_2 + 0.384 * Bo_5_2_1  + Do_temp2_5_2_3
+        val Do_5_1_3 = -0.384 * Bo_5_3_3                    + Do_temp2_5_3_1
+        val Do_5_2_3 = -0.083 * Bo_5_3_3                    + Do_temp2_5_3_2
+        val Do_5_3_3 = 0.083 * Bo_5_3_2 + 0.384 * Bo_5_3_1  + Do_temp2_5_3_3
+
+        //val Do_5_1_1 = 0.384 * Bo_5_1_3 + Do_temp2_5_1_1
+        //val Do_5_1_2 = 0.083 * Bo_5_1_3 + Do_temp2_5_1_2
+        //val Do_5_1_3 = -0.083 * Bo_5_1_2 - 0.384 * Bo_5_1_1 + Do_temp2_5_1_3
+        //val Do_5_2_1 = 0.384 * Bo_5_2_3 + Do_temp2_5_2_1
+        //val Do_5_2_2 = 0.083 * Bo_5_2_3 + Do_temp2_5_2_2
+        //val Do_5_2_3 = -0.083 * Bo_5_2_2 - 0.384 * Bo_5_2_1 + Do_temp2_5_2_3
+        //val Do_5_3_1 = 0.384 * Bo_5_3_3 + Do_temp2_5_3_1
+        //val Do_5_3_2 = 0.083 * Bo_5_3_3 + Do_temp2_5_3_2
+        //val Do_5_3_3 = -0.083 * Bo_5_3_2 - 0.384 * Bo_5_3_1 + Do_temp2_5_3_3
+
+        // Finally, add this to Yaba[4]
+        //Yaba[4] += acton(limi[5], Ia)
+        //val Ia_4_1_1 = Ao_5_1_1 + 3.5879
+        //val Ia_4_1_2 = Ao_5_1_2 + 0.0
+        //val Ia_4_1_3 = Ao_5_1_3 + 0.0
+        //val Ia_4_2_1 = Ao_5_2_1 + 0.0
+        //val Ia_4_2_2 = Ao_5_2_2 + 3.5879
+        //val Ia_4_2_3 = Ao_5_2_3 + 0.0
+        //val Ia_4_3_1 = Ao_5_3_1 + 0.0
+        //val Ia_4_3_2 = Ao_5_3_2 + 0.0
+        //val Ia_4_3_3 = Ao_5_3_3 + 3.5879
+        //val Ia_4_4_1 = Co_5_1_1 + 0.0
+        //val Ia_4_4_2 = Co_5_1_2 - 0.0985021
+        //val Ia_4_4_3 = Co_5_1_3 + 0.374644
+        //val Ia_4_5_1 = Co_5_2_1 + 0.0985021
+        //val Ia_4_5_2 = Co_5_2_2 + 0.0
+        //val Ia_4_5_3 = Co_5_2_3 + 0.190768
+        //val Ia_4_6_1 = Co_5_3_1 - 0.374644
+        //val Ia_4_6_2 = Co_5_3_2 - 0.190768
+        //val Ia_4_6_3 = Co_5_3_3 + 0.0
+        //val Ia_4_1_4 = Bo_5_1_1 + 0.0
+        //val Ia_4_1_5 = Bo_5_1_2 + 0.0985021
+        //val Ia_4_1_6 = Bo_5_1_3 - 0.374644
+        //val Ia_4_2_4 = Bo_5_2_1 - 0.0985021
+        //val Ia_4_2_5 = Bo_5_2_2 + 0.0
+        //val Ia_4_2_6 = Bo_5_2_3 - 0.190768
+        //val Ia_4_3_4 = Bo_5_3_1 + 0.374644
+        //val Ia_4_3_5 = Bo_5_3_2 + 0.190768
+        //val Ia_4_3_6 = Bo_5_3_3 + 0.0
+        //val Ia_4_4_4 = Do_5_1_1 + 0.0676773
+        //val Ia_4_4_5 = Do_5_1_2 + 0.0277158
+        //val Ia_4_4_6 = Do_5_1_3 + 0.00390536
+        //val Ia_4_5_4 = Do_5_2_1 + 0.0277158
+        //val Ia_4_5_5 = Do_5_2_2 + 0.0323994
+        //val Ia_4_5_6 = Do_5_2_3 - 0.00164449
+        //val Ia_4_6_4 = Do_5_3_1 + 0.00390536
+        //val Ia_4_6_5 = Do_5_3_2 - 0.00164449
+        //val Ia_4_6_6 = Do_5_3_3 + 0.0775861
+
+        val Ia_4_1_1 = Ao_5_1_1 + 3.5879
+        val Ia_4_1_2 = Ao_5_1_2 + 0.0
+        val Ia_4_1_3 = Ao_5_1_3 + 0.0
+        val Ia_4_2_1 = Ao_5_2_1 + 0.0
+        val Ia_4_2_2 = Ao_5_2_2 + 3.5879
+        val Ia_4_2_3 = Ao_5_2_3 + 0.0
+        val Ia_4_3_1 = Ao_5_3_1 + 0.0
+        val Ia_4_3_2 = Ao_5_3_2 + 0.0
+        val Ia_4_3_3 = Ao_5_3_3 + 3.5879
+        val Ia_4_4_1 = Co_5_1_1 + 0.0
+        val Ia_4_4_2 = Co_5_1_2 - 0.0985021
+        val Ia_4_4_3 = Co_5_1_3 + 0.374644
+        val Ia_4_5_1 = Co_5_2_1 + 0.0985021
+        val Ia_4_5_2 = Co_5_2_2 + 0.0
+        val Ia_4_5_3 = Co_5_2_3 + 0.190768
+        val Ia_4_6_1 = Co_5_3_1 - 0.374644
+        val Ia_4_6_2 = Co_5_3_2 - 0.190768
+        val Ia_4_6_3 = Co_5_3_3 + 0.0
+        val Ia_4_1_4 = Bo_5_1_1 + 0.0
+        val Ia_4_1_5 = Bo_5_1_2 + 0.0985021
+        val Ia_4_1_6 = Bo_5_1_3 - 0.374644
+        val Ia_4_2_4 = Bo_5_2_1 - 0.0985021
+        val Ia_4_2_5 = Bo_5_2_2 + 0.0
+        val Ia_4_2_6 = Bo_5_2_3 - 0.190768
+        val Ia_4_3_4 = Bo_5_3_1 + 0.374644
+        val Ia_4_3_5 = Bo_5_3_2 + 0.190768
+        val Ia_4_3_6 = Bo_5_3_3 + 0.0
+        val Ia_4_4_4 = Do_5_1_1 + 0.0676773
+        val Ia_4_4_5 = Do_5_1_2 + 0.0277158
+        val Ia_4_4_6 = Do_5_1_3 + 0.00390536
+        val Ia_4_5_4 = Do_5_2_1 + 0.0277158
+        val Ia_4_5_5 = Do_5_2_2 + 0.0323994
+        val Ia_4_5_6 = Do_5_2_3 - 0.00164449
+        val Ia_4_6_4 = Do_5_3_1 + 0.00390536
+        val Ia_4_6_5 = Do_5_3_2 - 0.00164449
+        val Ia_4_6_6 = Do_5_3_3 + 0.0775861
+
+        // JOINT 4
+        val U_4_1 = Ia_4_1_6
+        val U_4_2 = Ia_4_2_6
+        val U_4_3 = Ia_4_3_6
+        val U_4_4 = Ia_4_4_6
+        val U_4_5 = Ia_4_5_6
+        val U_4_6 = Ia_4_6_6    
+
+        Ia_4_5_6
+
+    } //ensuring(res => res +/- 1e-10)
 
 
 
