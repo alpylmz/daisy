@@ -19,7 +19,8 @@ object Minv {
             qpos2 > 0.1 && qpos2 < 1.7628 &&
             qpos3 > 0.1 && qpos3 < 2.8973 &&
             qpos4 > 0.1 && qpos4 < 2.8973 && // this is actually wrong
-            qpos5 > 0.1 && qpos5 < 2.8973 &&
+            //qpos5 > 0.1 && qpos5 < 2.8973 &&
+            qpos5 > 0.2 && qpos5 < 0.6 &&
             //qpos6 > 0.1 && qpos6 < 3.1 // this is wrong, too
             qpos6 > 0.1 && qpos6 < 1.1 // this is good for zero by division exception
         )
@@ -1193,7 +1194,9 @@ object Minv {
         val U_4_5 = Ia_4_5_6
         val U_4_6 = Ia_4_6_6    
 
-        Ia_4_5_6
+        val Dinv_4_1 = 1.0 / U_4_6
+
+        Dinv_4_1
 
     } //ensuring(res => res +/- 1e-10)
 
