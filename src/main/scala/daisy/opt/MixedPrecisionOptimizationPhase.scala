@@ -56,7 +56,24 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
     val availablePrecisions = defaultPrecision match {
       case FixedPrecision(b) => // given precision specifies the upper bound
-        (1 to b).map(FixedPrecision(_))
+        //(1 to b).map(FixedPrecision(_))
+        // bad implementation
+        if(b < 8){
+          reporter.warning("Precision is too low, setting it to 8")
+          Seq(FixedPrecision(8))
+        }
+        else if(b < 16){
+          Seq(FixedPrecision(8))
+        }
+        else if(b < 32){
+          Seq(FixedPrecision(8), FixedPrecision(16))
+        }
+        else if(b < 64){
+          Seq(FixedPrecision(8), FixedPrecision(16), FixedPrecision(32))
+        }
+        else{
+          Seq(FixedPrecision(8), FixedPrecision(16), FixedPrecision(32), FixedPrecision(64))
+        }
       case _ =>
         Seq(Float32, Float64, DoubleDouble)
     }
@@ -92,6 +109,19 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
             try {
               // path may contain unused variables, which is why use the allIDsOf here
               // TODO: remove unused variables, as they may produce suboptimal results
+              val rndoff = computeAbsError(body, allIDsOf(body).map(id => (id -> prec)).toMap,
+                prec, rangeMap, pathCond, approximate = false)
+              rndoff <= targetError
+            } catch {  // e.g. overflow when precision is not enough
+              case _ : Throwable => false
+            }
+          })
+          // search from the end:
+          availablePrecisions.reverse.find( prec => {
+            try {
+              // print precision
+              reporter.warning(s"Trying precision: $prec")
+              // path may contain unused variables, which is why use the allIDsOf here
               val rndoff = computeAbsError(body, allIDsOf(body).map(id => (id -> prec)).toMap,
                 prec, rangeMap, pathCond, approximate = false)
               rndoff <= targetError
