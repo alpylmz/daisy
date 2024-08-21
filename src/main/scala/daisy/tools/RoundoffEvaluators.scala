@@ -316,7 +316,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
         val mepsilon = prec match {
           case pr@FloatPrecision(_) => pr.machineEpsilon
-          case FixedPrecision(_) => throw DaisyFatalError(Some("Square root error computation for fixed-point numbers is undefined.")) // see todo
+          case pr@FixedPrecision(_) => pr.sqrtEpsilonZeroToOne
         }
         val a = try {
           Interval.minAbs(rangeT)
