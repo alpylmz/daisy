@@ -104,7 +104,6 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       else functionsToConsider(ctx, prg)
 
     val newDefs: Seq[FunDef] = fncsToConsider.map(fnc => {
-      reporter.info(s"Full body of ${fnc.id}: ${fnc.body.get}")
       // print all elements of fnc
       fnc.params.foreach(x => reporter.info(s"Param: $x"))
       // print preconditions
@@ -114,8 +113,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       val fullBody = fnc.body.get
       reporter.info(s"Analyzing function ${fnc.id}")
       val _rangeMap = ctx.intermediateRanges(fnc.id)
-      reporter.info("ranges are here?")
-      reporter.info(_rangeMap)
+      //reporter.info("ranges are here?")
+      //reporter.info(_rangeMap)
 
       // there is an output error to optimize for
       val (typeConfig, constPrec) = if (ctx.specResultErrorBounds.contains(fnc.id)) {
