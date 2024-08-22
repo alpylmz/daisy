@@ -86,6 +86,8 @@ case class Context(
     report = initReport
   )
 
+  var args: Array[String] = Array()
+
   val fixedPoint: Boolean = option[Precision]("precision") match {
     case FixedPrecision(_) => true
     case _ => option[String]("choosePrecision") == "fixed"

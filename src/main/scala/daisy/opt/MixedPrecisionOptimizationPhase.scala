@@ -50,6 +50,12 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   var optimizationMethod: String = ""
 
   override def runPhase(ctx: Context, prg: Program): (Context, Program) = {
+    val (newCtx, newPrg) = runPhaseHelper(ctx, prg)
+    (newCtx, newPrg)
+  }
+
+
+  def runPhaseHelper(ctx: Context, prg: Program): (Context, Program) = {
     reporter = ctx.reporter
 
     val defaultPrecision = ctx.option[Precision]("precision")
@@ -65,7 +71,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         // and the below implementation took around 1 and a half minute
         // it helps, and I think it will have a better impact on more complicated cases
         // for the panda's 3rd joint, with the below implementation it took 2.5 minutes
-
+        // Fixed8, Fixed16, Fixed32, Fixed64
         if(b < 8){
           reporter.warning("Precision is too low, setting it to 8")
           Seq(FixedPrecision(8))
@@ -98,8 +104,18 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       else functionsToConsider(ctx, prg)
 
     val newDefs: Seq[FunDef] = fncsToConsider.map(fnc => {
+      reporter.info(s"Full body of ${fnc.id}: ${fnc.body.get}")
+      // print all elements of fnc
+      fnc.params.foreach(x => reporter.info(s"Param: $x"))
+      // print preconditions
+      reporter.info("Preconditions:")
+      reporter.info(fnc.precondition)
+      // The input bounds are stored inside preconditions. We need to modify them!
       val fullBody = fnc.body.get
+      reporter.info(s"Analyzing function ${fnc.id}")
       val _rangeMap = ctx.intermediateRanges(fnc.id)
+      reporter.info("ranges are here?")
+      reporter.info(_rangeMap)
 
       // there is an output error to optimize for
       val (typeConfig, constPrec) = if (ctx.specResultErrorBounds.contains(fnc.id)) {
@@ -113,7 +129,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
           // Step 1: find the smallest available precision which satisfies the error bound
           // TODO: search from the end, the first one which does not satisfy the spec
-          reporter.info("First search for some reason")
+          //reporter.info("First search for some reason")
           availablePrecisions.find( prec => {
             try {
               // path may contain unused variables, which is why use the allIDsOf here
@@ -125,7 +141,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
               case _ : Throwable => false
             }
           })
-          reporter.info("Second search for some reason")
+          //reporter.info("Second search for some reason")
           // search from the end:
           availablePrecisions.reverse.find( prec => {
             try {
@@ -185,7 +201,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
                 case "delta" =>
 
                   val (tpeconfig, prec) = (deltaDebuggingSearch(body, targetError, fnc.params, costFnc,
-                    computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
+                    computeAbsErrorInDiffIntervals(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                     lowestUniformPrec)
 
@@ -194,14 +210,14 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
                 case "random" =>
 
                   (randomSearch(body, targetError, costFnc,
-                    computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
+                    computeAbsErrorInDiffIntervals(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions, maxTries = 1000),
                     lowestUniformPrec)
 
                 case "genetic" =>
 
                   (geneticSearch(body, targetError, benchmarkedMixedPrecisionCost,
-                    computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
+                    computeAbsErrorInDiffIntervals(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                   lowestUniformPrec)
 
@@ -262,6 +278,25 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       specInputErrors = ctx.specInputErrors ++ newInputErrors),
       Program(prg.id, newDefs ++ (functionsToConsider(ctx, prg).diff(fncsToConsider)))) // todo when fnc to consider is specified add approx ones too
   }
+
+  def computeAbsErrorInDiffIntervals(expr: Expr, typeConfig: Map[Identifier, Precision],
+    constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
+    path: PathCond, approximate: Boolean = false): Rational = {
+      
+      // only print parameters'
+      reporter.info("typeConfig:")
+      reporter.info(typeConfig)
+      reporter.info("constantsPrecision:")
+      reporter.info(constantsPrecision)
+      reporter.info("rangeMap:")
+      reporter.info(rangeMap)
+      reporter.info("path:")
+      reporter.info(path)
+
+
+      computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
+    }
+
 
   /*
     Computes the roundoff error by first introducing casts into the expressions,
@@ -375,6 +410,13 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     errorFnc: (Map[Identifier, Precision], Precision) => Rational,
     availablePrecisions: Seq[Precision]): TypeConfig = {
 
+    // TODO:
+    // somewhere here, use args, have a clear context, and call SpecsProcessingPhase and RangePhase
+    // and then you can call DataflowPhase to calculate errors.
+    // I believe getting the results from that should be pretty easy, and the rest should be just a small algorithm
+    // that replaces computeAbsError calls here, which what I was thinking computeAbsErrorInDiffIntervals is for
+    //  TODO:
+
     reporter.info("Starting delta debugging search...")
 
     val highestPrecision = availablePrecisions.last
@@ -421,6 +463,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       }(expr)
       inputParams ++ letDefs.reverse
     }
+    reporter.info(s"allVars: $allVars")
     assert(constants.size == 0)
 
     reporter.info("calculated allVars")

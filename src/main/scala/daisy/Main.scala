@@ -164,6 +164,11 @@ object Main {
     processOptions(args.toList) match {
       case Some(new_ctx) =>
         ctx = new_ctx
+        //args.toList.foreach(x => ctx.reporter.info(x))
+        // append args to ctx.args
+        args.toList.foreach(x => ctx.args = ctx.args :+ x)
+        ctx.reporter.info("args: ")
+        ctx.args.foreach(x => ctx.reporter.info(x))
         ctx.timers.total.start()
         val pipeline = computePipeline(ctx)
         ctx.reporter.info("\n************ Starting Daisy ************")
