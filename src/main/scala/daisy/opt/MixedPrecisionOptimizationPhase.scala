@@ -271,8 +271,6 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
     path: PathCond, approximate: Boolean = false): Rational = {
 
-    reporter.info("Computing roundoff error for path: " + path.mkString(" && "))
-
     // create finite-precision version
     val (finitePrecBody, newRangeMap) = applyFinitePrecision(expr, typeConfig, rangeMap)
 
@@ -437,7 +435,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     // @param typeConfig is the current Type configuration (of which we know that it is a valid one)
     // @returns the 'optimal' type config satisfying the spec and has smallest cost
     def deltaDebug(currentVars: Seq[Identifier], typeConfig: Map[Identifier, Precision], depth: Int): Map[Identifier, Precision] = {
-      reporter.info(s"Starting delta debugging with depth: $depth")
+
       if (depth >= 1000) {
         reporter.warning("!! delta debugging, max depth level reached !!")
         typeConfig
@@ -448,13 +446,14 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         candidateTypeConfigs += loweredTypeConfig
 
         // 2: evaluate current config
-        reporter.info("first errorfnc")
+        //reporter.info("first errorfnc")
+        reporter.info("one run")
         val currentError = errorFnc(loweredTypeConfig, highestPrecision)
-        reporter.info("first errorfnc finished")
+        //reporter.info("first errorfnc finished")
 
         // 3a: if the error is below threshold, we are done recursing
         if (currentError <= errorSpec) {
-          reporter.info("error below spec")
+          //reporter.info("error below spec")
           numValidConfigs = numValidConfigs + 1
           val fixedVars = allVars.diff(currentVars)
 
@@ -463,23 +462,25 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
             loweredTypeConfig
           } else {
             val (fixedVarsLeft, fixedVarsRight) = fixedVars.splitAt(fixedVars.length / 2)
-            reporter.info("lowervariables")
+            //reporter.info("lowervariables")
             val loweredLeft = lowerVariables(fixedVarsLeft, loweredTypeConfig)
             val loweredRight = lowerVariables(fixedVarsRight, loweredTypeConfig)
-            reporter.info("lowervariables")
+            //reporter.info("lowervariables")
             candidateTypeConfigs += loweredLeft; candidateTypeConfigs += loweredRight
 
-            reporter.info("second errorfnc")
+            //reporter.info("second errorfnc")
+            reporter.info("one run")
             val errorLeft = errorFnc(loweredLeft, highestPrecision)
-            reporter.info("second errorfnc finished")
-            reporter.info("third errorfnc")
+            //reporter.info("second errorfnc finished")
+            //reporter.info("third errorfnc")
+            reporter.info("one run")
             val errorRight = errorFnc(loweredRight, highestPrecision)
-            reporter.info("third errorfnc finished")
+            //reporter.info("third errorfnc finished")
 
             // choose the one with lowest cost
-            reporter.info("costfnc")
+            //reporter.info("costfnc")
             var currentMinCost = costFnc(expr, loweredTypeConfig)
-            reporter.info("costfnc finished")
+            //reporter.info("costfnc finished")
             var currentBestConfig = loweredTypeConfig
             /* TODO: Robert' edit (but unclear why it is correct)
             val typeConfigCost = costFnc(expr, typeConfig)
@@ -514,12 +515,12 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
         } else {
           // 3b: if the error is not below, we need to continue to subdivide
-          reporter.info("error above spec")
+          //reporter.info("error above spec")
 
           if (currentVars.length <= 1) {
             typeConfig
           } else {
-            reporter.info("subdividing")
+            //reporter.info("subdividing")
 
             // subdivide variables, divide by 2 should be integer division
             val (currVarsLeft, currVarsRight) = currentVars.splitAt(currentVars.length / 2)
@@ -589,7 +590,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     var continue = true
     while (continue && currentLowPrecIndex >= 0) {
       // do delta debugging, which will lower some variables
-      reporter.info("Starting delta debugging...")
+      //reporter.info("Starting delta debugging...")
       reporter.info(s"Current low precision index: $currentLowPrecIndex")
       try {
         val newTypeConfig = deltaDebug(currentVars, currentTypeConfig, 0)
