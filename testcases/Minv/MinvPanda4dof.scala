@@ -132,9 +132,9 @@ object Minv {
         val oMi_rotation_5_3_2 = oMi_rotation_4_3_1 * limi_rotation_5_1_2 + oMi_rotation_4_3_3 * limi_rotation_5_3_2
         val oMi_rotation_5_3_3 = oMi_rotation_4_3_2
 
-        val oMi_translation_5_1 = oMi_rotation_4_1_1 * -0.083 + oMi_rotation_4_1_2 * 0.384 + oMi_translation_4_1
-        val oMi_translation_5_2 = oMi_rotation_4_2_1 * -0.083 + oMi_rotation_4_2_2 * 0.384 + oMi_translation_4_2
-        val oMi_translation_5_3 = oMi_rotation_4_3_1 * -0.083 + oMi_rotation_4_3_2 * 0.384 + oMi_translation_4_3
+        val oMi_translation_5_1 = oMi_rotation_4_1_1 * -0.083 + oMi_rotation_4_1_2 * 0.384
+        val oMi_translation_5_2 = oMi_rotation_4_2_1 * -0.083 + oMi_rotation_4_2_2 * 0.384
+        val oMi_translation_5_3 = oMi_rotation_4_3_1 * -0.083 + oMi_rotation_4_3_2 * 0.384 + 0.333
 
         // JOINT 6
         val rotation_matrix_6_1_1 = cos_qpos6
