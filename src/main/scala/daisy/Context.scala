@@ -78,7 +78,10 @@ case class Context(
   dsAbstractions: Map[Identifier, Map[Expr, DSAbstraction]] = Map(),
   errMsg: Option[String] = None,
 
-  var args: Seq[String] = Seq()
+  var args: Seq[String] = Seq(),
+  var target_error_dataflowspecphase: Rational = Rational.zero,
+  var typeConfig: Map[Identifier, Precision] = Map(),
+  var path: PathCond = Seq()
 
 ) {
 

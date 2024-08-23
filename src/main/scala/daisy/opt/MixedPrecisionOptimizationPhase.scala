@@ -180,12 +180,16 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     transform.DecompositionPhase,
     transform.UnrollPhase
   )
+  
+  var rangeMethod = ""
+  var errorMethod = ""
+  val trackRoundoffErrs = true
 
 
 /* 
  * Copied from daisy/src/main/scala/daisy/Main.scala, and stripped down to the essentials.
  */
-def processOptions(args: List[String]): Option[Context] = {
+  def processOptions(args: List[String]): Option[Context] = {
     val initReporter = new DefaultReporter(Set(), false)
 
     val argsMap: Map[String, String] =
@@ -347,6 +351,8 @@ def processOptions(args: List[String]): Option[Context] = {
 
         val paths = extractPaths(fullBody, emptyPath, _rangeMap)
 
+        
+
         val res: Seq[(TypeConfig, Precision)] = paths.map({ case (pathCond, _body, rangeMap) =>
           reporter.info(s"Analyzing path: $pathCond")
           val body = removeUnusedVars(_body)
@@ -425,7 +431,7 @@ def processOptions(args: List[String]): Option[Context] = {
                 case "delta" =>
 
                   val (tpeconfig, prec) = (deltaDebuggingSearch(ctx, body, targetError, fnc.params, costFnc,
-                    computeAbsErrorInDiffIntervals(body, _, _, rangeMap, pathCond, approximate = true),
+                    computeAbsErrorInDiffIntervals(ctx, body, _, _, rangeMap, pathCond, approximate = true, targetError),
                     consideredPrecisions),
                     lowestUniformPrec)
 
@@ -434,14 +440,14 @@ def processOptions(args: List[String]): Option[Context] = {
                 case "random" =>
 
                   (randomSearch(body, targetError, costFnc,
-                    computeAbsErrorInDiffIntervals(body, _, _, rangeMap, pathCond, approximate = true),
+                    computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions, maxTries = 1000),
                     lowestUniformPrec)
 
                 case "genetic" =>
 
                   (geneticSearch(body, targetError, benchmarkedMixedPrecisionCost,
-                    computeAbsErrorInDiffIntervals(body, _, _, rangeMap, pathCond, approximate = true),
+                    computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                   lowestUniformPrec)
 
@@ -503,22 +509,65 @@ def processOptions(args: List[String]): Option[Context] = {
       Program(prg.id, newDefs ++ (functionsToConsider(ctx, prg).diff(fncsToConsider)))) // todo when fnc to consider is specified add approx ones too
   }
 
-  def computeAbsErrorInDiffIntervals(expr: Expr, typeConfig: Map[Identifier, Precision],
+  def computeAbsErrorInDiffIntervals(ctx: Context, expr: Expr, typeConfig: Map[Identifier, Precision],
     constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
-    path: PathCond, approximate: Boolean = false): Rational = {
+    path: PathCond, approximate: Boolean = false, targetError: Rational): Rational = {
       
       // only print parameters'
       reporter.info("typeConfig:")
       reporter.info(typeConfig)
-      reporter.info("constantsPrecision:")
-      reporter.info(constantsPrecision)
-      reporter.info("rangeMap:")
-      reporter.info(rangeMap)
-      reporter.info("path:")
-      reporter.info(path)
+      //reporter.info("constantsPrecision:")
+      //reporter.info(constantsPrecision)
+      //reporter.info("rangeMap:")
+      //reporter.info(rangeMap)
+      //reporter.info("path:")
+      //reporter.info(path)
+
+      var process_args = ctx.args
+      //reporter.info("process_args")
+      //reporter.info(ctx.args.toList)
+      // remove the delta-debugging search from the args, just in case
+      val new_args = process_args.filterNot(_ == "--mixed-tuning")
+      //reporter.info(new_args.toList)
+
+      //reporter.info("starting new process, see what happens")
+      // for now this new process is only used to make sure I did not forget anything in extraction phase or specsprocessing phase
+      // it should be deleted later!
+      processOptions(process_args.toList) match{
+        case Some(new_ctx) =>
+          new_ctx.target_error_dataflowspecphase = targetError
+          new_ctx.typeConfig = typeConfig
+          new_ctx.path = path
+          val new_pipeline = frontend.ExtractionPhase >> analysis.SpecsProcessingPhase >> analysis.DataflowSpecPhase
+          new_pipeline.run(new_ctx, Program(null, Nil))
+        case None =>
+          reporter.fatalError("Error in processing the arguments")
+      }
+      //reporter.info("finished new process, see what happens")
+
+      // process only should return the maximum error, 
+      // rest of the calculations are the concern of DataflowSpecPhase
 
 
-      computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
+      // use new_ctx to get results
+      //reporter.info("specInputPrecisions")
+      //reporter.info(ctx.specInputPrecisions) // I guess we'll use this to assign precisions?
+      //reporter.info("uniformPrecisions")
+      //reporter.info(ctx.uniformPrecisions)
+      //reporter.info("resultAbsoluteErrors")
+      //reporter.info(ctx.resultAbsoluteErrors) // this
+      //reporter.info("resultRealRanges")
+      //reporter.info(ctx.resultRealRanges) // and that are the most important ones
+      //reporter.info("intermediateAbsErrors")
+      //reporter.info(ctx.intermediateAbsErrors) //this is too complicated, it returns everything as a tree
+      //reporter.info("intermediateRanges")
+      //reporter.info(ctx.intermediateRanges) //this is too complicated, it returns everything as a tree
+      //reporter.info("assignedPrecisions")
+      //reporter.info(ctx.assignedPrecisions)
+
+
+      //computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
+      Rational.zero
     }
 
 
@@ -640,6 +689,7 @@ def processOptions(args: List[String]): Option[Context] = {
     // I believe getting the results from that should be pretty easy, and the rest should be just a small algorithm
     // that replaces computeAbsError calls here, which what I was thinking computeAbsErrorInDiffIntervals is for
     //  TODO:
+    /*
     var process_args = ctx.args
     reporter.info("process_args")
     reporter.info(ctx.args.toList)
@@ -657,6 +707,27 @@ def processOptions(args: List[String]): Option[Context] = {
         reporter.fatalError("Error in processing the arguments")
     }
     reporter.info("finished new process, see what happens")
+
+    // use new_ctx to get results
+    reporter.info("specInputPrecisions")
+    reporter.info(ctx.specInputPrecisions) // I guess we'll use this to assign precisions?
+    reporter.info("uniformPrecisions")
+    reporter.info(ctx.uniformPrecisions)
+    reporter.info("resultAbsoluteErrors")
+    reporter.info(ctx.resultAbsoluteErrors) // this
+    reporter.info("resultRealRanges")
+    reporter.info(ctx.resultRealRanges) // and that are the most important ones
+    reporter.info("intermediateAbsErrors")
+    reporter.info(ctx.intermediateAbsErrors) //this is too complicated, it returns everything as a tree
+    reporter.info("intermediateRanges")
+    reporter.info(ctx.intermediateRanges) //this is too complicated, it returns everything as a tree
+    reporter.info("assignedPrecisions")
+    reporter.info(ctx.assignedPrecisions)
+    */
+
+    rangeMethod = ctx.option[String]("rangeMethod")
+    errorMethod = ctx.option[String]("errorMethod")
+
 
     reporter.info("Starting delta debugging search...")
 
@@ -704,10 +775,10 @@ def processOptions(args: List[String]): Option[Context] = {
       }(expr)
       inputParams ++ letDefs.reverse
     }
-    reporter.info(s"allVars: $allVars")
+    //reporter.info(s"allVars: $allVars")
     assert(constants.size == 0)
 
-    reporter.info("calculated allVars")
+    //reporter.info("calculated allVars")
 
     var numValidConfigs = 0
     val candidateTypeConfigs = MSet[TypeConfig]()   // for info purposes only
@@ -731,7 +802,7 @@ def processOptions(args: List[String]): Option[Context] = {
 
         // 2: evaluate current config
         //reporter.info("first errorfnc")
-        reporter.info("one run")
+        //reporter.info("one run")
         val currentError = errorFnc(loweredTypeConfig, highestPrecision)
         //reporter.info("first errorfnc finished")
 
@@ -742,7 +813,7 @@ def processOptions(args: List[String]): Option[Context] = {
           val fixedVars = allVars.diff(currentVars)
 
           if (fixedVars.isEmpty) { // nothing to optimize further
-            reporter.info("no more variables to optimize")
+            //reporter.info("no more variables to optimize")
             loweredTypeConfig
           } else {
             val (fixedVarsLeft, fixedVarsRight) = fixedVars.splitAt(fixedVars.length / 2)
@@ -753,11 +824,11 @@ def processOptions(args: List[String]): Option[Context] = {
             candidateTypeConfigs += loweredLeft; candidateTypeConfigs += loweredRight
 
             //reporter.info("second errorfnc")
-            reporter.info("one run")
+            //reporter.info("one run")
             val errorLeft = errorFnc(loweredLeft, highestPrecision)
             //reporter.info("second errorfnc finished")
             //reporter.info("third errorfnc")
-            reporter.info("one run")
+            //reporter.info("one run")
             val errorRight = errorFnc(loweredRight, highestPrecision)
             //reporter.info("third errorfnc finished")
 
@@ -944,6 +1015,8 @@ def processOptions(args: List[String]): Option[Context] = {
           ((Variable(id), emptyPath) -> currRanges((Variable(id), emptyPath))))
 
       case Let(id, x @ ElemFnc(t @ Variable(tId), recons), body) =>
+        println("ElemFnccorrect")
+        println(id)
         val idPrec = typeConfig (id)
 
         val (valueExpr, valueMap) = recurse(t, path)
