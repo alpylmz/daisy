@@ -6,6 +6,7 @@ package daisy
 import java.io.File
 import daisy.tools.FinitePrecision._
 import lang.Trees.Program
+import daisy.ProgramLanguage._
 
 object Main {
 
@@ -167,7 +168,7 @@ object Main {
         //args.toList.foreach(x => ctx.reporter.info(x))
         // append args to ctx.args
         args.toList.foreach(x => ctx.args = ctx.args :+ x)
-        ctx.reporter.info("args: ")
+        ctx.reporter.info("argsss: ")
         ctx.args.foreach(x => ctx.reporter.info(x))
         ctx.timers.total.start()
         val pipeline = computePipeline(ctx)
@@ -476,8 +477,5 @@ object Main {
     ))
   }
 
-  object ProgramLanguage extends Enumeration {
-    val CProgram, ScalaProgram = Value
-  }
 
 }

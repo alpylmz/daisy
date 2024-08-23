@@ -8,8 +8,8 @@ import lang.Trees.{Expr, Program, FunDef}
 import lang.Identifiers._
 import tools.{DSAbstraction, FinitePrecision, Interval, PartialInterval, Rational}
 import FinitePrecision.{FixedPrecision, Precision}
-import daisy.Main.ProgramLanguage
-import daisy.Main.ProgramLanguage._
+import daisy.ProgramLanguage._
+// import daisy.Main.ProgramLanguage._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.immutable.Seq
@@ -76,7 +76,9 @@ case class Context(
 
   originalFunctions: Map[Identifier, FunDef] = Map(),
   dsAbstractions: Map[Identifier, Map[Expr, DSAbstraction]] = Map(),
-  errMsg: Option[String] = None
+  errMsg: Option[String] = None,
+
+  var args: Seq[String] = Seq()
 
 ) {
 
@@ -85,8 +87,6 @@ case class Context(
     silent = hasFlag("silent"),
     report = initReport
   )
-
-  var args: Array[String] = Array()
 
   val fixedPoint: Boolean = option[Precision]("precision") match {
     case FixedPrecision(_) => true

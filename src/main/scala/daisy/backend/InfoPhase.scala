@@ -9,7 +9,7 @@ import scala.collection.immutable.{ListMap, Seq}
 import lang.Trees.{Expr, FunDef, Program, Variable}
 import tools.{Interval, MatrixIndex, Rational, VectorIndex}
 import Rational._
-import daisy.Main.ProgramLanguage
+import daisy.ProgramLanguage._
 import daisy.lang.Identifiers.FreshIdentifier
 import daisy.lang.TreeOps
 import daisy.lang.Types.{MatrixType, RealType, VectorType}

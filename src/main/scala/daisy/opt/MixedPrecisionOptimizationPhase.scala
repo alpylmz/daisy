@@ -1,6 +1,7 @@
 package daisy
 package opt
 
+import java.io.File
 import scala.collection.immutable.Seq
 import scala.collection.mutable.{Set => MSet}
 import util.Random
@@ -12,6 +13,7 @@ import lang.TreeOps._
 import tools.{AffineForm, Interval, Rational}
 import lang.Extractors.{ArithOperator, ElemFnc}
 import tools._
+import daisy.ProgramLanguage._
 
 /**
  * This phase optimizes and determines a suitable mixed-precision type assignment.
@@ -32,6 +34,229 @@ import tools._
  */
 object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   with search.GeneticSearch[Map[Identifier, Precision]] with tools.RoundoffEvaluators {
+
+  /* 
+   * Copied from daisy/src/main/scala/daisy/Main.scala, and stripped down to the essentials.
+   */
+  val globalOptions: Set[CmdLineOption[Any]] = Set(
+    FlagOption(
+      "help",
+      "Show this message"),
+    FlagOption(
+      "silent",
+      "Don't print anything, except for results."),
+    MultiChoiceOption(
+      "debug",
+      DebugSections.all.map(s => s.name -> s).toMap,
+      "For which sections to print debug info"),
+    FlagOption(
+      "dynamic",
+      "Run dynamic analysis"),
+    FlagOption(
+      "codegen",
+      "Generate code (as opposed to just doing analysis)"),
+    FlagOption(
+      "three-address",
+      "Transform code to three-address code prior to analysis."),
+    FlagOption(
+      "rewrite",
+      "Rewrite expression to improve accuracy"),
+    MultiStringOption(
+      "functions",
+      List("f1", "f2"),
+      "Which functions to consider"),
+    FlagOption(
+      "print-tough-smt-calls",
+      "If enabled, will print those SMT queries to file which take longer"),
+    StringChoiceOption(
+      "solver",
+      Set("dReal", "z3"),
+      "z3",
+      "smt solver to use for smt range analysis"),
+    ChoiceOption(
+      "analysis",
+      Map("dataflow" -> analysis.DataflowPhase, "opt" -> analysis.TaylorErrorPhase,
+          "relative" -> analysis.RelativeErrorPhase),
+      "dataflow",
+      "Which analysis method to use"),
+    FlagOption(
+      "subdiv",
+      "Apply subdivision to absolute error computation."
+    ),
+    ChoiceOption(
+      "precision",
+      Map("Float16" -> Float16, "Float32" -> Float32, "Float64" -> Float64,
+        "Quad" -> DoubleDouble, "QuadDouble" -> QuadDouble) ++
+        (1 to 64).map(x => ("Fixed" + x -> FixedPrecision(x))),
+      "Float64",
+      "(Default, uniform) precision to use"),
+    StringChoiceOption(
+      "rangeMethod",
+      Set("affine", "interval", "smt", "intervalMPFR", "affineMPFR"),
+      "interval",
+      "Method for range analysis"),
+    FlagOption(
+      "noRoundoff",
+      "Do not track roundoff errors"),
+    FlagOption(
+      "noInitialErrors",
+      "Do not track initial errors specified by user"),
+    FlagOption(
+      "pow-roll",
+      "Roll products, e.g. x*x*x -> pow(x, 3)"
+    ),
+    FlagOption(
+      "pow-unroll",
+      "Unroll products, e.g. pow(x, 3) => x*x*x"
+    ),
+    StringOption(
+      "mixed-precision",
+      """File with type assignment for all variables.
+        The format is the following:
+        function_name = {
+          variable_name_1: prec_1
+          variable_name_2: prec_2
+          ... }
+        function_name_2 = {
+          variable_name_i: prec_i }
+
+        The file can also only give a partial precision map."""),
+    FlagOption(
+      "denormals",
+      "Include parameter for denormals in the FP abstraction (for optimization-based approach only)."),
+
+
+    FlagOption("mixed-cost-eval", "Mixed-precision cost function evaluation experiment"),
+    FlagOption("mixed-exp-gen", "Mixed-precision experiment generation"),
+    FlagOption("mixed-tuning", "Perform mixed-precision tuning"),
+    FlagOption(
+      "approx",
+      "Replaces expensive transcendental function calls with its approximations"
+    ),
+    StringOption(
+      "spec",
+      "Specification file with intervals for input variables and target error."),
+    StringChoiceOption(
+      "cost",
+      Set("area", "ml", "combined"),
+      "area",
+      "Cost function for mixed-tuning and approximation phases."),
+
+    FlagOption("metalibm", "approximate an elementary function from Metalibm"),
+    FlagOption("benchmarking", "generates the benchmark file"),
+    FlagOption("print-ast", "prints the AST of a parsed program"),
+    FlagOption("unroll", "unrolls all loops over DS [WARN] only used with --print-ast at the moment"),
+    FlagOption("ds", "applies abstraction to data structures and computes ranges, errors"),
+    FlagOption("ds-naive", "naive analysis of programs with data structures (ranges, errors)")
+  )
+
+  lazy val allPhases: Set[DaisyPhase] = Set(
+    analysis.SpecsProcessingPhase,
+    transform.CompilerOptimizationPhase,
+    analysis.AbsErrorPhase,
+    analysis.RangePhase,
+    analysis.DataflowPhase,
+    analysis.DSAbstractionPhase,
+    analysis.DSNaivePhase,
+    analysis.RelativeErrorPhase,
+    analysis.TaylorErrorPhase,
+    analysis.DataflowSubdivisionPhase,
+    backend.CodeGenerationPhase,
+    transform.TACTransformerPhase,
+    transform.PowTransformerPhase,
+    analysis.DynamicPhase,
+    opt.RewritingOptimizationPhase,
+    transform.ConstantTransformerPhase,
+    opt.MixedPrecisionOptimizationPhase,
+    experiment.MixedPrecisionExperimentGenerationPhase,
+    experiment.CostFunctionEvaluationExperiment,
+    backend.InfoPhase,
+    frontend.ExtractionPhase,
+    frontend.CExtractionPhase,
+    opt.ApproxPhase,
+    opt.MetalibmPhase,
+    //transform.ReassignElemFuncPhase,
+    experiment.BenchmarkingPhase,
+    transform.DecompositionPhase,
+    transform.UnrollPhase
+  )
+
+
+/* 
+ * Copied from daisy/src/main/scala/daisy/Main.scala, and stripped down to the essentials.
+ */
+def processOptions(args: List[String]): Option[Context] = {
+    val initReporter = new DefaultReporter(Set(), false)
+
+    val argsMap: Map[String, String] =
+      args.filter(_.startsWith("--")).map(_.drop(2).split("=", 2).toList match {
+        case List(name, value) => name -> value
+        case List(name) => name -> "yes"
+      }).toMap
+    
+    // all available options from all phases
+    val allOptions: Set[CmdLineOption[Any]] = 
+      globalOptions ++ allPhases.flatMap(_.definedOptions)
+
+    // go through all options and check if they are defined, else use default
+    val opts: Map[String, Any] = allOptions.map({
+      case FlagOption(name, _) => name -> argsMap.get(name).isDefined
+
+      case StringOption(name, _) => name -> argsMap.get(name)
+
+      case MultiStringOption(name, _, _) =>
+        name -> argsMap.get(name).map(_.stripPrefix("[").stripPrefix("]").split(":").toList).getOrElse(Nil)
+
+      case NumOption(name, default, _) => argsMap.get(name) match {
+        case None => name -> default
+        case Some(s) => try {
+          name -> s.toLong
+        } catch {
+          case e: NumberFormatException =>
+            initReporter.warning(s"Can't parse argument for option $name, using default")
+            name -> default
+        }
+      }
+
+      case ChoiceOption(name, choices, default, _) => argsMap.get(name) match {
+        case Some(s) if choices.keySet.contains(s) => name -> choices(s)
+        case Some(s) =>
+          initReporter.warning(s"Unknown choice value for $name: $s. Options: " +
+            s"${choices.keySet.toSeq.sorted.mkString(", ")}. Using default $default")
+          name -> choices(default)
+        case None => name -> choices(default)
+      }
+
+      case MultiChoiceOption(name, choices, _) => argsMap.get(name) match {
+        case Some("all") | Some("[all]") =>
+          name -> choices.values.toList
+        case Some(ss) => name -> ss.stripPrefix("[").stripSuffix("]").split(":").toList.filter {
+          case "all" =>
+            initReporter.warning(s"'all' in list for $name, ignoring"); false
+          case s if !choices.keySet.contains(s) =>
+            initReporter.warning(s"Unknown choice value for $name: $s. Options: ${choices.keySet.toSeq.sorted.mkString(", ")}"); false
+          case _ => true
+        }.map(choices(_))
+        case None => name -> Nil
+      }
+    }).toMap
+
+    def inputInfo: (String, ProgramLanguage.Value) = args.filterNot(_.startsWith("-")) match {
+      case Seq() => initReporter.fatalError("No input file")
+      case Seq(f) if new File(f).exists && f.endsWith(".c") => (f, ProgramLanguage.CProgram)
+      case Seq(f) if new File(f).exists => (f, ProgramLanguage.ScalaProgram)
+      case Seq(f) => initReporter.fatalError(s"File $f does not exist")
+      case fs => initReporter.fatalError("More than one input file: " + fs.mkString(", "))
+    }
+
+    val (inputFile, programLanguage) = inputInfo
+    Option(Context(
+      initReport = initReporter.report,
+      file = inputFile,
+      lang = programLanguage,
+      options = opts
+    ))
+  }
 
   override val name = "mixed-precision optimization"
   override val description = "determines a suitable mixed-precision type assignment"
@@ -199,7 +424,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
               optimizationMethod match {
                 case "delta" =>
 
-                  val (tpeconfig, prec) = (deltaDebuggingSearch(body, targetError, fnc.params, costFnc,
+                  val (tpeconfig, prec) = (deltaDebuggingSearch(ctx, body, targetError, fnc.params, costFnc,
                     computeAbsErrorInDiffIntervals(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                     lowestUniformPrec)
@@ -404,7 +629,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
    * @param availablePrecisions which precisions are available for assigning
    * @return (type configuration, return precision)
    */
-  def deltaDebuggingSearch(expr: Expr, errorSpec: Rational, params: Seq[ValDef],
+  def deltaDebuggingSearch(ctx: Context, expr: Expr, errorSpec: Rational, params: Seq[ValDef],
     costFnc: (Expr, Map[Identifier, Precision]) => Rational,
     errorFnc: (Map[Identifier, Precision], Precision) => Rational,
     availablePrecisions: Seq[Precision]): TypeConfig = {
@@ -415,6 +640,23 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     // I believe getting the results from that should be pretty easy, and the rest should be just a small algorithm
     // that replaces computeAbsError calls here, which what I was thinking computeAbsErrorInDiffIntervals is for
     //  TODO:
+    var process_args = ctx.args
+    reporter.info("process_args")
+    reporter.info(ctx.args.toList)
+    // remove the delta-debugging search from the args, just in case
+    val new_args = process_args.filterNot(_ == "--mixed-tuning")
+    reporter.info(new_args.toList)
+
+    reporter.info("starting new process, see what happens")
+
+    processOptions(process_args.toList) match{
+      case Some(new_ctx) =>
+        val new_pipeline = frontend.ExtractionPhase >> analysis.SpecsProcessingPhase >> analysis.RangePhase >> analysis.DataflowPhase
+        new_pipeline.run(ctx, Program(null, Nil))
+      case None =>
+        reporter.fatalError("Error in processing the arguments")
+    }
+    reporter.info("finished new process, see what happens")
 
     reporter.info("Starting delta debugging search...")
 
