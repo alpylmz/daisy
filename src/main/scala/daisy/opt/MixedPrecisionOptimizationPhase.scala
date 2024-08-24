@@ -516,28 +516,15 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
     path: PathCond, approximate: Boolean = false, targetError: Rational): Rational = {
 
-      // somehow if we start a new pipeline here, it causes many problems,
-      // starting with identifiers no longer matching for some reason,
-      // and some other bugs that I could not figure out, yet
-      // It seems a recursive call in this function is the only way to go
-      // I am saying a recursive call on this function, because I am not sure if we need to apply applyFinitePrecision
-      // and some other functions each time. I'll play safe for now
-      // let's print every parameter
-      //reporter.info("expr:")
-      //reporter.info(expr)
-      //reporter.info("typeConfig:")
-      //reporter.info(typeConfig)
-      //reporter.info("constantsPrecision:")
-      //reporter.info(constantsPrecision)
-      //reporter.info("rangeMap:") // it seems only thing about input bounds is this
-      //reporter.info(rangeMap)
-      //reporter.info("path:") // this was empty in my trials
-      //reporter.info(path)
-      //reporter.info("approximate:")
-      //reporter.info(approximate)
-
-      // The only thing we need to recalculate each time seems to be rangeMap
-      // there is no one function on it, rangePhase calculates it.
+      // let's first get the usual range, if it is below the target error, we can skip the rest
+      val fullRangeError = computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
+      if(fullRangeError <= targetError){
+        reporter.info("Full range error is below the target error, skipping the rest")
+        return fullRangeError
+      }
+      // else, we need to subdivide...
+      reporter.info("Full range error is above the target error, subdividing...")
+      val ctx_copy = ctx.copy()
 
       val originalProgram = ctx.originalProgram
       // assuming rangeMethod to be affine for now
@@ -673,7 +660,12 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           case (pathCond, _body, rangeMapnew) =>
             reporter.info("inputValMap:")
             reporter.info(inputValMap)
-            val temp_res = computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, pathCond, approximate)
+            reporter.info("rangeMap: ")
+            reporter.info(rangeMap)
+            reporter.info("rangeMapnew: ")
+            reporter.info(rangeMapnew)
+            val temp_res = computeAbsError(expr, typeConfig, constantsPrecision, rangeMapnew, pathCond, approximate)
+            //val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError)
             resErrors = resErrors :+ temp_res  
         })
       })
@@ -1215,6 +1207,16 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         val rightExpr = Variable(rhs.changeType(FinitePrecisionType(opPrec)))
 
         val leftMap: RangeMap = Map((leftExpr, emptyPath) -> currRanges(y, emptyPath))
+        println("leftMap")
+        println(leftMap)
+        println("rightExpr")
+        println(rightExpr)
+        println("z")
+        println(z)
+        println("emptyPath")
+        println(emptyPath)
+        println("currRanges")
+        println(currRanges)
         val rightMap = Map((rightExpr, emptyPath) -> currRanges(z, emptyPath))
 
         var newValue = recons(Seq(leftExpr, rightExpr))
