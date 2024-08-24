@@ -554,7 +554,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       reporter.info(fnc.precondition)
       reporter.info("body:")
       reporter.info(fnc.body.get)
-      val preconditions_list = fnc.precondition match {
+      val preconditions_list: Seq[Expr] = fnc.precondition match {
         case Some(x) => {
           // x here is ((qpos5 > 0.2) ? (qpos5 < 0.21) ? (qpos6 > 0.2) ? (qpos6 < 0.21))
           // first let's try to print them one by one
@@ -569,6 +569,9 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         }
       }
 
+      reporter.info("Preconditions list:")
+      reporter.info(preconditions_list)
+
       // Now, every element of this list is a condition, (var_name < or > value)
       // I assume the list is sorted, so that the first element is the lower bound and the second element is the upper bound,
       // and so on
@@ -576,6 +579,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // I will try to do that now
       var i = 0
       var preconditions = List[List[Expr]]()
+      var inputValMaps = List[Map[Identifier, Interval]]()
       while(i < preconditions_list.length){
         val lower_bound = preconditions_list(i)
         val upper_bound = preconditions_list(i+1)
@@ -621,66 +625,45 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // now I have the preconditions, I will try to print them
       reporter.info("New preconditions:")
       reporter.info(preconditions)
-      // preconditions should have the structure:
-      //List(
-      //  List(((qpos5 > 0.2) ? (qpos5 < 0.205)), ((qpos5 > 0.205) ? (qpos5 < 0.21))), 
-      //  List(((qpos6 > 0.2) ? (qpos6 < 0.205)), ((qpos6 > 0.205) ? (qpos6 < 0.21)))
-      //)
-      reporter.info(
-        takeCombinations(preconditions)
+      /* 
+      List(
+	      List(((qpos5 > 0.2) ? (qpos5 < 0.25)), ((qpos5 > 0.25) ? (qpos5 < 0.3))), 
+	      List(((qpos6 > 0.2) ? (qpos6 < 0.4)), ((qpos6 > 0.4) ? (qpos6 < 0.6)))
       )
-      // now, take each inner list, and flatten it
-      val all_preconditions = processInnerLists(
-        takeCombinations(preconditions)
-      )
-      reporter.info("All preconditions:")
-      reporter.info(all_preconditions)
-
-      // now, we can also construct inputValMap from all_preconditions
-      // inputValMap is: List((qpos5,[0.2,0.21]), (qpos6,[0.2,0.21]))
-      var inputValMaps: List[Map[Identifier, Interval]] = List()
-      var inputValMap: Map[Identifier, Interval] = Map()
-      all_preconditions.foreach({
-        case And(a) => {
-          // a must be a list of conditions
-          a match {
-            case List(first, second) => {
-              first match {
-                case And(b) => {
-                  b match {
-                    case Seq(GreaterThan(Variable(id), RealLiteral(lower)), LessThan(_, RealLiteral(upper))) => {
-                      val a = (id -> Interval(lower, upper))
-                      inputValMap = inputValMap ++ Map(id -> Interval(lower, upper))
-                      second match {
-                        case And(c) => {
-                          c match {
-                            case Seq(GreaterThan(Variable(id), RealLiteral(lower)), LessThan(_, RealLiteral(upper))) => {
-                              val a = (id -> Interval(lower, upper))
-                              inputValMap = inputValMap ++ Map(id -> Interval(lower, upper))
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        inputValMaps = inputValMaps :+ inputValMap
-      })
+      */
+      /* 
+        We need the structure:
+        List(
+          Map(qpos5 -> [0.2, 0.25], qpos6 -> [0.2, 0.4]), 
+          Map(qpos5 -> [0.2, 0.25], qpos6 -> [0.4, 0.6]), 
+          Map(qpos5 -> [0.25, 0.3], qpos6 -> [0.2, 0.4]), 
+          Map(qpos5 -> [0.25, 0.3], qpos6 -> [0.4, 0.6])
+        )
+       */
+      inputValMaps = takeCombinations(preconditions)
+      
 
       reporter.info("InputValMaps:")
       reporter.info(inputValMaps)
 
       inputValMaps.foreach(inputValMap => {
+
+        reporter.info("InputValMap:")
+        reporter.info(inputValMap)
         
-        val (resRange, intermediateRanges) = evalRange[AffineForm](fnc.body.get,
+        val (resRange, _intermediateRanges) = evalRange[AffineForm](fnc.body.get,
             inputValMap.map(x => (x._1 -> AffineForm(x._2))), AffineForm.apply)
       
         reporter.info("ResRange:")
         reporter.info(resRange)
+
+        
+
+        
+
+
+
+
       })
 
 
@@ -689,35 +672,49 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
     }
   
-  def takeCombinations(lst: List[List[Expr]]): List[List[Expr]] = {
-    lst match {
-      case Nil => List(Nil)
-      case head :: tail =>
-        for {
-          h <- head
-          t <- takeCombinations(tail)
-        } yield h :: t
+  def takeCombinations(lst: List[List[Expr]]): List[Map[Identifier, Interval]] = {
+    if(lst.isEmpty){
+      return List()
     }
+    val head = lst.head
+    val tail = lst.tail
+    if(tail.isEmpty){
+      // if there is only one element in the list
+      // then we can return the list of maps
+      // each map will have only one element
+      // and the value will be the value of the element
+      // the key will be the variable name
+      return head.map(x => {
+        x match {
+          case And(a) => {
+            val (id, value1) = a(0) match {
+              case GreaterThan(Variable(id), RealLiteral(value1)) => (id, value1)
+            }
+            val value2 = a(1) match {
+              case LessThan(_, RealLiteral(value2)) => value2
+            }
+            Map(id -> Interval(value1, value2))
+          }
+        }
+      })
+    }
+    // if there are more than one element in the list
+    // then we need to take the combinations of the first element
+    // and the rest of the list
+    val head_combinations = takeCombinations(List(head))
+    val tail_combinations = takeCombinations(tail)
+    // now we need to take the combinations of the head_combinations
+    // and the tail_combinations
+    val result = head_combinations.flatMap(x => {
+      tail_combinations.map(y => {
+        x ++ y
+      })
+    })
+    result
+
   }
   
-  def processInnerLists(lst: List[List[Expr]]): List[Expr] = {
-    lst match {
-      case Nil => List()
-      case head :: tail => {
-        // head here is the form List(((qpos5 > 0.2) ? (qpos5 < 0.205)), ((qpos6 > 0.2) ? (qpos6 < 0.205)))
-        // I want to convert it to (qpos5 > 0.2) ? (qpos5 < 0.205), (qpos6 > 0.2) ? (qpos6 < 0.205)
-        List(processInnerListsHelper(head)) ++ processInnerLists(tail)
-      }
-    }
-  }
 
-  def processInnerListsHelper(lst: List[Expr]): Expr = {
-    lst match {
-      case Nil => throw new Exception("Empty list")
-      case head :: Nil => head
-      case head :: tail => And(head, processInnerListsHelper(tail))
-    }
-  } 
 
 
   /*
