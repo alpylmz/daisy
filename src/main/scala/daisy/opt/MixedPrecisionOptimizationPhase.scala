@@ -6,6 +6,7 @@ import scala.collection.immutable.Seq
 import scala.collection.mutable.{Set => MSet}
 import util.Random
 import lang.Trees._
+import lang.Trees
 import lang.Types._
 import lang.Identifiers._
 import tools.FinitePrecision._
@@ -14,6 +15,7 @@ import tools.{AffineForm, Interval, Rational}
 import lang.Extractors.{ArithOperator, ElemFnc}
 import tools._
 import daisy.ProgramLanguage._
+import java.net.IDN
 
 /**
  * This phase optimizes and determines a suitable mixed-precision type assignment.
@@ -34,6 +36,9 @@ import daisy.ProgramLanguage._
  */
 object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   with search.GeneticSearch[Map[Identifier, Precision]] with tools.RoundoffEvaluators {
+
+  val minimumIntervalSize = 0.1
+  val epsilonRes = 0.01
 
   /* 
    * Copied from daisy/src/main/scala/daisy/Main.scala, and stripped down to the essentials.
@@ -432,6 +437,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
                   val (tpeconfig, prec) = (deltaDebuggingSearch(ctx, body, targetError, fnc.params, costFnc,
                     computeAbsErrorInDiffIntervals(ctx, body, _, _, rangeMap, pathCond, approximate = true, targetError),
+                    //computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                     lowestUniformPrec)
 
@@ -512,63 +518,206 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   def computeAbsErrorInDiffIntervals(ctx: Context, expr: Expr, typeConfig: Map[Identifier, Precision],
     constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
     path: PathCond, approximate: Boolean = false, targetError: Rational): Rational = {
-      
-      // only print parameters'
-      reporter.info("typeConfig:")
-      reporter.info(typeConfig)
+
+      // somehow if we start a new pipeline here, it causes many problems,
+      // starting with identifiers no longer matching for some reason,
+      // and some other bugs that I could not figure out, yet
+      // It seems a recursive call in this function is the only way to go
+      // I am saying a recursive call on this function, because I am not sure if we need to apply applyFinitePrecision
+      // and some other functions each time. I'll play safe for now
+      // let's print every parameter
+      //reporter.info("expr:")
+      //reporter.info(expr)
+      //reporter.info("typeConfig:")
+      //reporter.info(typeConfig)
       //reporter.info("constantsPrecision:")
       //reporter.info(constantsPrecision)
-      //reporter.info("rangeMap:")
+      //reporter.info("rangeMap:") // it seems only thing about input bounds is this
       //reporter.info(rangeMap)
-      //reporter.info("path:")
+      //reporter.info("path:") // this was empty in my trials
       //reporter.info(path)
+      //reporter.info("approximate:")
+      //reporter.info(approximate)
 
-      var process_args = ctx.args
-      //reporter.info("process_args")
-      //reporter.info(ctx.args.toList)
-      // remove the delta-debugging search from the args, just in case
-      val new_args = process_args.filterNot(_ == "--mixed-tuning")
-      //reporter.info(new_args.toList)
+      // The only thing we need to recalculate each time seems to be rangeMap
+      // there is no one function on it, rangePhase calculates it.
 
-      //reporter.info("starting new process, see what happens")
-      // for now this new process is only used to make sure I did not forget anything in extraction phase or specsprocessing phase
-      // it should be deleted later!
-      processOptions(process_args.toList) match{
-        case Some(new_ctx) =>
-          new_ctx.target_error_dataflowspecphase = targetError
-          new_ctx.typeConfig = typeConfig
-          new_ctx.path = path
-          val new_pipeline = frontend.ExtractionPhase >> analysis.SpecsProcessingPhase >> analysis.DataflowSpecPhase
-          new_pipeline.run(new_ctx, Program(null, Nil))
-        case None =>
-          reporter.fatalError("Error in processing the arguments")
+      val originalProgram = ctx.originalProgram
+      // assuming rangeMethod to be affine for now
+      val fncs = functionsToConsider(ctx, originalProgram)
+      val fnc = fncs.head // assuming there is only one function
+      reporter.info("Function:")
+      reporter.info(fnc)
+      // fnc has some preconditions, I believe if we modify then, we can get the desired results without any more changes
+      // I will try to modify them
+      reporter.info("Preconditions:")
+      reporter.info(fnc.precondition)
+      reporter.info("body:")
+      reporter.info(fnc.body.get)
+      val preconditions_list = fnc.precondition match {
+        case Some(x) => {
+          // x here is ((qpos5 > 0.2) ? (qpos5 < 0.21) ? (qpos6 > 0.2) ? (qpos6 < 0.21))
+          // first let's try to print them one by one
+          // I will try to print the first one
+          // the elements are OR operators, so I guess I can again use a match case
+          x match {
+            case Trees.And(a) => {
+              // a must be a list of conditions
+              a
+            }
+          }
+        }
       }
-      //reporter.info("finished new process, see what happens")
 
-      // process only should return the maximum error, 
-      // rest of the calculations are the concern of DataflowSpecPhase
+      // Now, every element of this list is a condition, (var_name < or > value)
+      // I assume the list is sorted, so that the first element is the lower bound and the second element is the upper bound,
+      // and so on
+      // The next step is from this producing a list of preconditions, which is subdivided versions of the original one
+      // I will try to do that now
+      var i = 0
+      var preconditions = List[List[Expr]]()
+      while(i < preconditions_list.length){
+        val lower_bound = preconditions_list(i)
+        val upper_bound = preconditions_list(i+1)
+        val lower_bound_value = lower_bound match {
+          case LessThan(_, value) => value match {
+            case RealLiteral(r) => r
+          }
+          case GreaterThan(_, value) => value match {
+            case RealLiteral(r) => r
+          }
+        }
+        val upper_bound_value = upper_bound match {
+          case LessThan(_, value) => value match {
+            case RealLiteral(r) => r
+          }
+          case GreaterThan(_, value) => value match {
+            case RealLiteral(r) => r
+          }
+        }
+        val var_id = lower_bound match {
+          case LessThan(id, _) => id
+          case GreaterThan(id, _) => id
+        }
+
+        //if(upper_bound_value - lower_bound_value < minimumIntervalSize){
+        //  // if the difference is too small, we can skip this one
+        //  i = i + 2
+        //  continue
+        //}
+
+        preconditions = preconditions :+ List(
+          And(
+            GreaterThan(var_id, RealLiteral(lower_bound_value)),
+            LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+          ),
+          And(
+            GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+            LessThan(var_id, RealLiteral(upper_bound_value)),
+          ),
+        )
+        i = i + 2
+      }
+      // now I have the preconditions, I will try to print them
+      reporter.info("New preconditions:")
+      reporter.info(preconditions)
+      // preconditions should have the structure:
+      //List(
+      //  List(((qpos5 > 0.2) ? (qpos5 < 0.205)), ((qpos5 > 0.205) ? (qpos5 < 0.21))), 
+      //  List(((qpos6 > 0.2) ? (qpos6 < 0.205)), ((qpos6 > 0.205) ? (qpos6 < 0.21)))
+      //)
+      reporter.info(
+        takeCombinations(preconditions)
+      )
+      // now, take each inner list, and flatten it
+      val all_preconditions = processInnerLists(
+        takeCombinations(preconditions)
+      )
+      reporter.info("All preconditions:")
+      reporter.info(all_preconditions)
+
+      // now, we can also construct inputValMap from all_preconditions
+      // inputValMap is: List((qpos5,[0.2,0.21]), (qpos6,[0.2,0.21]))
+      var inputValMaps: List[Map[Identifier, Interval]] = List()
+      var inputValMap: Map[Identifier, Interval] = Map()
+      all_preconditions.foreach({
+        case And(a) => {
+          // a must be a list of conditions
+          a match {
+            case List(first, second) => {
+              first match {
+                case And(b) => {
+                  b match {
+                    case Seq(GreaterThan(Variable(id), RealLiteral(lower)), LessThan(_, RealLiteral(upper))) => {
+                      val a = (id -> Interval(lower, upper))
+                      inputValMap = inputValMap ++ Map(id -> Interval(lower, upper))
+                      second match {
+                        case And(c) => {
+                          c match {
+                            case Seq(GreaterThan(Variable(id), RealLiteral(lower)), LessThan(_, RealLiteral(upper))) => {
+                              val a = (id -> Interval(lower, upper))
+                              inputValMap = inputValMap ++ Map(id -> Interval(lower, upper))
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        inputValMaps = inputValMaps :+ inputValMap
+      })
+
+      reporter.info("InputValMaps:")
+      reporter.info(inputValMaps)
+
+      inputValMaps.foreach(inputValMap => {
+        
+        val (resRange, intermediateRanges) = evalRange[AffineForm](fnc.body.get,
+            inputValMap.map(x => (x._1 -> AffineForm(x._2))), AffineForm.apply)
+      
+        reporter.info("ResRange:")
+        reporter.info(resRange)
+      })
 
 
-      // use new_ctx to get results
-      //reporter.info("specInputPrecisions")
-      //reporter.info(ctx.specInputPrecisions) // I guess we'll use this to assign precisions?
-      //reporter.info("uniformPrecisions")
-      //reporter.info(ctx.uniformPrecisions)
-      //reporter.info("resultAbsoluteErrors")
-      //reporter.info(ctx.resultAbsoluteErrors) // this
-      //reporter.info("resultRealRanges")
-      //reporter.info(ctx.resultRealRanges) // and that are the most important ones
-      //reporter.info("intermediateAbsErrors")
-      //reporter.info(ctx.intermediateAbsErrors) //this is too complicated, it returns everything as a tree
-      //reporter.info("intermediateRanges")
-      //reporter.info(ctx.intermediateRanges) //this is too complicated, it returns everything as a tree
-      //reporter.info("assignedPrecisions")
-      //reporter.info(ctx.assignedPrecisions)
 
 
-      //computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
-      Rational.zero
+      computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
     }
+  
+  def takeCombinations(lst: List[List[Expr]]): List[List[Expr]] = {
+    lst match {
+      case Nil => List(Nil)
+      case head :: tail =>
+        for {
+          h <- head
+          t <- takeCombinations(tail)
+        } yield h :: t
+    }
+  }
+  
+  def processInnerLists(lst: List[List[Expr]]): List[Expr] = {
+    lst match {
+      case Nil => List()
+      case head :: tail => {
+        // head here is the form List(((qpos5 > 0.2) ? (qpos5 < 0.205)), ((qpos6 > 0.2) ? (qpos6 < 0.205)))
+        // I want to convert it to (qpos5 > 0.2) ? (qpos5 < 0.205), (qpos6 > 0.2) ? (qpos6 < 0.205)
+        List(processInnerListsHelper(head)) ++ processInnerLists(tail)
+      }
+    }
+  }
+
+  def processInnerListsHelper(lst: List[Expr]): Expr = {
+    lst match {
+      case Nil => throw new Exception("Empty list")
+      case head :: Nil => head
+      case head :: tail => And(head, processInnerListsHelper(tail))
+    }
+  } 
 
 
   /*
