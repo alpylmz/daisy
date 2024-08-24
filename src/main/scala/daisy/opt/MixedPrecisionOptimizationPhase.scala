@@ -340,12 +340,9 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     val newDefs: Seq[FunDef] = fncsToConsider.map(fnc => {
       // print all elements of fnc
       fnc.params.foreach(x => reporter.info(s"Param: $x"))
-      // print preconditions
-      reporter.info("Preconditions:")
-      reporter.info(fnc.precondition)
       // The input bounds are stored inside preconditions. We need to modify them!
       val fullBody = fnc.body.get
-      reporter.info(s"Analyzing function ${fnc.id}")
+      //reporter.info(s"Analyzing function ${fnc.id}")
       val _rangeMap = ctx.intermediateRanges(fnc.id)
       //reporter.info("ranges are here?")
       //reporter.info(_rangeMap)
@@ -546,14 +543,9 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // assuming rangeMethod to be affine for now
       val fncs = functionsToConsider(ctx, originalProgram)
       val fnc = fncs.head // assuming there is only one function
-      reporter.info("Function:")
-      reporter.info(fnc)
       // fnc has some preconditions, I believe if we modify then, we can get the desired results without any more changes
       // I will try to modify them
-      reporter.info("Preconditions:")
-      reporter.info(fnc.precondition)
-      reporter.info("body:")
-      reporter.info(fnc.body.get)
+
       val preconditions_list: Seq[Expr] = fnc.precondition match {
         case Some(x) => {
           // x here is ((qpos5 > 0.2) ? (qpos5 < 0.21) ? (qpos6 > 0.2) ? (qpos6 < 0.21))
@@ -568,9 +560,6 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           }
         }
       }
-
-      reporter.info("Preconditions list:")
-      reporter.info(preconditions_list)
 
       // Now, every element of this list is a condition, (var_name < or > value)
       // I assume the list is sorted, so that the first element is the lower bound and the second element is the upper bound,
@@ -643,33 +632,55 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       inputValMaps = takeCombinations(preconditions)
       
 
-      reporter.info("InputValMaps:")
-      reporter.info(inputValMaps)
+      //reporter.info("InputValMaps:")
+      //reporter.info(inputValMaps)
+
+      var resErrors = List[Rational]()
 
       inputValMaps.foreach(inputValMap => {
 
-        reporter.info("InputValMap:")
-        reporter.info(inputValMap)
+        //reporter.info("InputValMap:")
+        //reporter.info(inputValMap)
         
         val (resRange, _intermediateRanges) = evalRange[AffineForm](fnc.body.get,
             inputValMap.map(x => (x._1 -> AffineForm(x._2))), AffineForm.apply)
       
-        reporter.info("ResRange:")
-        reporter.info(resRange)
+        //reporter.info("ResRange:")
+        //reporter.info(resRange)
 
+        val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
+
+        //reporter.info("Ranges:")
+        //reporter.info(_ranges)
+
+        val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({
+          fnc.id -> _ranges
+        })
         
+        val intermediateRanges = res.mapValues(_._2).toMap
 
+        //reporter.info("IntermediateRanges:")
+        //reporter.info(intermediateRanges)
+
+        val _rangeMap = intermediateRanges(fnc.id)
+
+        val emptyPath = Seq()
+
+        val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
         
-
-
-
-
+        // no idea how this works
+        paths.map({
+          case (pathCond, _body, rangeMapnew) =>
+            reporter.info("inputValMap:")
+            reporter.info(inputValMap)
+            val temp_res = computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, pathCond, approximate)
+            resErrors = resErrors :+ temp_res  
+        })
       })
 
+      // choose max
+      resErrors.max
 
-
-
-      computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
     }
   
   def takeCombinations(lst: List[List[Expr]]): List[Map[Identifier, Interval]] = {
@@ -1161,8 +1172,6 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           ((Variable(id), emptyPath) -> currRanges((Variable(id), emptyPath))))
 
       case Let(id, x @ ElemFnc(t @ Variable(tId), recons), body) =>
-        println("ElemFnccorrect")
-        println(id)
         val idPrec = typeConfig (id)
 
         val (valueExpr, valueMap) = recurse(t, path)
