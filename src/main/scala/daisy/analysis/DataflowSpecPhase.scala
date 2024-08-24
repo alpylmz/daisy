@@ -215,16 +215,11 @@ object DataflowSpecPhase extends DaisyPhase with RoundoffEvaluators with Interva
     def recurse(e: Expr, path: PathCond): (Expr, RangeMap) = (e: @unchecked) match {
 
       case x @ Variable(id) =>
-        val idPrec_ = typeConfig.filter(x => x._1.name == id.name)
-        val idPrec = idPrec_.head._2
-        val newExpr = Variable(id.changeType(FinitePrecisionType(idPrec)))
+        val newExpr = Variable(id.changeType(FinitePrecisionType(typeConfig(id))))
         (newExpr, Map((newExpr, emptyPath) -> currRanges(x, emptyPath)))
 
       case Let(id, x @ Variable(idV), body) =>
-        val idPrec_ = typeConfig.filter(x => x._1.name == id.name)
-        val idPrec = idPrec_.head._2
-        println("idV")
-        println(idV)
+        val idPrec = typeConfig(id)
         val newValue = Variable(idV.changeType(FinitePrecisionType(typeConfig(idV))))
         val (bodyExpr, bodyMap) = recurse(body, path)
 
@@ -234,8 +229,7 @@ object DataflowSpecPhase extends DaisyPhase with RoundoffEvaluators with Interva
           ((Variable(id), emptyPath) -> currRanges((Variable(id), emptyPath))))
 
       case Let(id, x @ RealLiteral(r), body) =>
-        val idPrec_ = typeConfig.filter(x => x._1.name == id.name)
-        val idPrec = idPrec_.head._2
+        val idPrec = typeConfig(id)
         val newValue = FinitePrecisionLiteral(r, idPrec, x.stringValue)
         val (bodyExpr, bodyMap) = recurse(body, path)
 
@@ -245,17 +239,13 @@ object DataflowSpecPhase extends DaisyPhase with RoundoffEvaluators with Interva
           ((Variable(id), emptyPath) -> currRanges((Variable(id), emptyPath))))
 
       case Let(id, x @ ElemFnc(t @ Variable(tId), recons), body) =>
-        // for some reason this fails, I can only use names, ids are different
-        // get idPrec by using x._1.name == id.name
-        val idPrec_ = typeConfig.filter(x => x._1.name == id.name)
-        val idPrec = idPrec_.head._2
-
-        val tidPrec_ = typeConfig.filter(x => x._1.name == tId.name)
-        val tidPrec = tidPrec_.head._2
+        println("ElemFnccorrect")
+        println(id)
+        val idPrec = typeConfig (id)
 
         val (valueExpr, valueMap) = recurse(t, path)
         var newValue: Expr = recons(valueExpr)
-        if (idPrec < tidPrec ) { // need to downcast
+        if (idPrec < typeConfig(tId) ) { // need to downcast
         newValue = Cast(newValue, FinitePrecisionType(idPrec))
         }
 
@@ -263,22 +253,17 @@ object DataflowSpecPhase extends DaisyPhase with RoundoffEvaluators with Interva
 
         val newExpr = Let (id.changeType(FinitePrecisionType(idPrec)), newValue, bodyExpr)
 
-        println("qw")
         (newExpr, (bodyMap ++ valueMap) + ((newValue, path) -> currRanges (x, path) ) +
         ((Variable (id), emptyPath) -> currRanges ((Variable (id), emptyPath) ) ) +
           ((x, path) -> currRanges (x, path) ) ) // fixes the issue of java.util.NoSuchElementException: key not found: (sin(_tmp),List())
 
 
       case Let(id, x @ ArithOperator(Seq(t @ Variable(tId)), recons), body) =>
-        val idPrec_ = typeConfig.filter(x => x._1.name == id.name)
-        val idPrec = idPrec_.head._2
-
-        val tidPrec_ = typeConfig.filter(x => x._1.name == tId.name)
-        val tidPrec = tidPrec_.head._2
+        val idPrec = typeConfig(id)
 
         val (valueExpr, valueMap) = recurse(t, path)
         var newValue: Expr = recons(Seq(valueExpr))
-        if (idPrec < tidPrec) { // need to downcast
+        if (idPrec < typeConfig(tId)) { // need to downcast
           newValue = Cast(newValue, FinitePrecisionType(idPrec))
         }
 
@@ -290,15 +275,9 @@ object DataflowSpecPhase extends DaisyPhase with RoundoffEvaluators with Interva
           ((Variable(id), emptyPath) -> currRanges((Variable(id), emptyPath))))
 
       case Let(id, x @ ArithOperator(Seq(y @ Variable(lhs), z @ Variable(rhs)), recons), body) =>
-        val idPrec_ = typeConfig.filter(x => x._1.name == id.name)
-        val idPrec = idPrec_.head._2
-        val lPrec_ = typeConfig.filter(x => x._1.name == lhs.name)
-        val lPrec = lPrec_.head._2
-        val rPrec_ = typeConfig.filter(x => x._1.name == rhs.name)
-        val rPrec = rPrec_.head._2
-        //val idPrec = typeConfig(id)
-        //val lPrec = typeConfig(lhs)
-        //val rPrec = typeConfig(rhs)
+        val idPrec = typeConfig(id)
+        val lPrec = typeConfig(lhs)
+        val rPrec = typeConfig(rhs)
         val opPrec = getUpperBound(getUpperBound(lPrec, rPrec), idPrec)
 
         val leftExpr = Variable(lhs.changeType(FinitePrecisionType(opPrec)))
@@ -356,8 +335,7 @@ object DataflowSpecPhase extends DaisyPhase with RoundoffEvaluators with Interva
       case GreaterEquals(lhs, rhs) =>
         (GreaterEquals(recurse(lhs, path)._1, recurse(rhs, path)._1), Map())
 
-      case _ =>
-        throw new Exception("Expression not supported in applyFinitePrecision: " + e)
+
     }
     recurse(expr, emptyPath)
   }
