@@ -343,9 +343,12 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // The input bounds are stored inside preconditions. We need to modify them!
       val fullBody = fnc.body.get
       //reporter.info(s"Analyzing function ${fnc.id}")
+      reporter.info(s"Analyzing function ${fnc.id}")
+      reporter.info("fullBody first:")
+      reporter.info(fullBody)
       val _rangeMap = ctx.intermediateRanges(fnc.id)
-      //reporter.info("ranges are here?")
-      //reporter.info(_rangeMap)
+      reporter.info("original rangemap, this have const")
+      reporter.info(_rangeMap)
 
       // there is an output error to optimize for
       val (typeConfig, constPrec) = if (ctx.specResultErrorBounds.contains(fnc.id)) {
@@ -433,7 +436,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
                 case "delta" =>
 
                   val (tpeconfig, prec) = (deltaDebuggingSearch(ctx, body, targetError, fnc.params, costFnc,
-                    computeAbsErrorInDiffIntervals(ctx, body, _, _, rangeMap, pathCond, approximate = true, targetError),
+                    computeAbsErrorInDiffIntervals(ctx, prg, body, _, _, rangeMap, pathCond, approximate = true, targetError),
                     //computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                     lowestUniformPrec)
@@ -512,7 +515,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       Program(prg.id, newDefs ++ (functionsToConsider(ctx, prg).diff(fncsToConsider)))) // todo when fnc to consider is specified add approx ones too
   }
 
-  def computeAbsErrorInDiffIntervals(ctx: Context, expr: Expr, typeConfig: Map[Identifier, Precision],
+  def computeAbsErrorInDiffIntervals(ctx: Context, prg: Program, expr: Expr, typeConfig: Map[Identifier, Precision],
     constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
     path: PathCond, approximate: Boolean = false, targetError: Rational): Rational = {
 
@@ -525,15 +528,23 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // else, we need to subdivide...
       reporter.info("Full range error is above the target error, subdividing...")
       val ctx_copy = ctx.copy()
-
-      val originalProgram = ctx.originalProgram
+      
+      // original program seems to be actually the original one, without any modifications
+      // but, daisy replaces const values with variables, so we still need to process it again.
+      //val originalProgram = ctx.originalProgram
+      val originalProgram = prg
       // assuming rangeMethod to be affine for now
       val fncs = functionsToConsider(ctx, originalProgram)
       val fnc = fncs.head // assuming there is only one function
       // fnc has some preconditions, I believe if we modify then, we can get the desired results without any more changes
       // I will try to modify them
 
-      val preconditions_list: Seq[Expr] = fnc.precondition match {
+      var precond = fnc.precondition
+      // if precondition is defined, precond = fnc.precondition
+      // else, precond = None
+      
+
+      val preconditions_list: Seq[Expr] = precond match {
         case Some(x) => {
           // x here is ((qpos5 > 0.2) ? (qpos5 < 0.21) ? (qpos6 > 0.2) ? (qpos6 < 0.21))
           // first let's try to print them one by one
@@ -556,6 +567,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       var i = 0
       var preconditions = List[List[Expr]]()
       var inputValMaps = List[Map[Identifier, Interval]]()
+      var less_than_min_count = 0
       while(i < preconditions_list.length){
         val lower_bound = preconditions_list(i)
         val upper_bound = preconditions_list(i+1)
@@ -579,24 +591,43 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           case LessThan(id, _) => id
           case GreaterThan(id, _) => id
         }
-
-        //if(upper_bound_value - lower_bound_value < minimumIntervalSize){
-        //  // if the difference is too small, we can skip this one
-        //  i = i + 2
-        //  continue
-        //}
-
-        preconditions = preconditions :+ List(
-          And(
-            GreaterThan(var_id, RealLiteral(lower_bound_value)),
-            LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
-          ),
-          And(
-            GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
-            LessThan(var_id, RealLiteral(upper_bound_value)),
-          ),
-        )
+        reporter.info("Lower bound value:")
+        reporter.info(lower_bound_value)
+        reporter.info("Upper bound value:")
+        reporter.info(upper_bound_value)
+        if(upper_bound_value - lower_bound_value <= minimumIntervalSize){
+          // if the difference is too small, we can skip this one, but other variables still may need to be subdivided
+          preconditions = preconditions :+ List(
+            And(
+              GreaterThan(var_id, RealLiteral(lower_bound_value)),
+              LessThan(var_id, RealLiteral(upper_bound_value)),
+            ),
+          )
+          less_than_min_count = less_than_min_count + 1
+        }
+        else{
+          preconditions = preconditions :+ List(
+            And(
+              GreaterThan(var_id, RealLiteral(lower_bound_value)),
+              LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+              LessThan(var_id, RealLiteral(upper_bound_value)),
+            ),
+          )
+        }
         i = i + 2
+      }
+      reporter.info("less_than_min_count:")
+      reporter.info(less_than_min_count)
+      reporter.info("preconditions_list.length:")
+      reporter.info(preconditions_list.length)
+      if(less_than_min_count == preconditions_list.length){
+        // if all the intervals are too small, then we can't do anything
+        // we can't subdivide them
+        // so, we will return the full range error
+        return fullRangeError
       }
       // now I have the preconditions, I will try to print them
       reporter.info("New preconditions:")
@@ -628,6 +659,9 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
         //reporter.info("InputValMap:")
         //reporter.info(inputValMap)
+
+        reporter.info("fnc.body.get")
+        reporter.info(fnc.body.get)
         
         val (resRange, _intermediateRanges) = evalRange[AffineForm](fnc.body.get,
             inputValMap.map(x => (x._1 -> AffineForm(x._2))), AffineForm.apply)
@@ -654,19 +688,25 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         val emptyPath = Seq()
 
         val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
-        
+
+        //reporter.info("old precondition:")
+        //reporter.info(prg.defs.filter(_.body.isDefined).find(_.id == fnc.id).get.precondition)
+        //// update preconditions of the function
+        //prg.defs.filter(_.body.isDefined).find(_.id == fnc.id).get.precondition = Some(And(preconditions_list))
+        //reporter.info("new precondition:")
+        //reporter.info(prg.defs.filter(_.body.isDefined).find(_.id == fnc.id).get.precondition)
         // no idea how this works
         paths.map({
           case (pathCond, _body, rangeMapnew) =>
-            reporter.info("inputValMap:")
-            reporter.info(inputValMap)
-            reporter.info("rangeMap: ")
-            reporter.info(rangeMap)
-            reporter.info("rangeMapnew: ")
-            reporter.info(rangeMapnew)
-            val temp_res = computeAbsError(expr, typeConfig, constantsPrecision, rangeMapnew, pathCond, approximate)
-            //val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError)
-            resErrors = resErrors :+ temp_res  
+            //reporter.info("inputValMap:")
+            //reporter.info(inputValMap)
+            //reporter.info("rangeMap: ")
+            //reporter.info(rangeMap)
+            //reporter.info("rangeMapnew: ")
+            //reporter.info(rangeMapnew)
+            //val temp_res = computeAbsError(expr, typeConfig, constantsPrecision, rangeMapnew, pathCond, approximate)
+            val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError)
+            resErrors = resErrors :+ temp_res2  
         })
       })
 
@@ -1207,16 +1247,6 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         val rightExpr = Variable(rhs.changeType(FinitePrecisionType(opPrec)))
 
         val leftMap: RangeMap = Map((leftExpr, emptyPath) -> currRanges(y, emptyPath))
-        println("leftMap")
-        println(leftMap)
-        println("rightExpr")
-        println(rightExpr)
-        println("z")
-        println(z)
-        println("emptyPath")
-        println(emptyPath)
-        println("currRanges")
-        println(currRanges)
         val rightMap = Map((rightExpr, emptyPath) -> currRanges(z, emptyPath))
 
         var newValue = recons(Seq(leftExpr, rightExpr))
