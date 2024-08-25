@@ -344,11 +344,11 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       val fullBody = fnc.body.get
       //reporter.info(s"Analyzing function ${fnc.id}")
       reporter.info(s"Analyzing function ${fnc.id}")
-      reporter.info("fullBody first:")
-      reporter.info(fullBody)
+      //reporter.info("fullBody first:")
+      //reporter.info(fullBody)
       val _rangeMap = ctx.intermediateRanges(fnc.id)
-      reporter.info("original rangemap, this have const")
-      reporter.info(_rangeMap)
+      //reporter.info("original rangemap, this have const")
+      //reporter.info(_rangeMap)
 
       // there is an output error to optimize for
       val (typeConfig, constPrec) = if (ctx.specResultErrorBounds.contains(fnc.id)) {
@@ -517,7 +517,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
   def computeAbsErrorInDiffIntervals(ctx: Context, prg: Program, expr: Expr, typeConfig: Map[Identifier, Precision],
     constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
-    path: PathCond, approximate: Boolean = false, targetError: Rational): Rational = {
+    path: PathCond, approximate: Boolean = false, targetError: Rational, precondition_update: Option[Expr] = None): Rational = {
 
       // let's first get the usual range, if it is below the target error, we can skip the rest
       val fullRangeError = computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
@@ -539,9 +539,15 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // fnc has some preconditions, I believe if we modify then, we can get the desired results without any more changes
       // I will try to modify them
 
-      var precond = fnc.precondition
+      var precond: Option[Expr] = fnc.precondition
       // if precondition is defined, precond = fnc.precondition
       // else, precond = None
+      if(precondition_update.isDefined){
+        precond = precondition_update
+      }
+
+      reporter.info("Precondition:")
+      reporter.info(precond)
       
 
       val preconditions_list: Seq[Expr] = precond match {
@@ -591,10 +597,10 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           case LessThan(id, _) => id
           case GreaterThan(id, _) => id
         }
-        reporter.info("Lower bound value:")
-        reporter.info(lower_bound_value)
-        reporter.info("Upper bound value:")
-        reporter.info(upper_bound_value)
+        //reporter.info("Lower bound value:")
+        //reporter.info(lower_bound_value)
+        //reporter.info("Upper bound value:")
+        //reporter.info(upper_bound_value)
         if(upper_bound_value - lower_bound_value <= minimumIntervalSize){
           // if the difference is too small, we can skip this one, but other variables still may need to be subdivided
           preconditions = preconditions :+ List(
@@ -619,19 +625,19 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         }
         i = i + 2
       }
-      reporter.info("less_than_min_count:")
-      reporter.info(less_than_min_count)
-      reporter.info("preconditions_list.length:")
-      reporter.info(preconditions_list.length)
-      if(less_than_min_count == preconditions_list.length){
+      //reporter.info("less_than_min_count:")
+      //reporter.info(less_than_min_count)
+      //reporter.info("preconditions_list.length:")
+      //reporter.info(preconditions_list.length)
+      if(less_than_min_count * 2 == preconditions_list.length){
         // if all the intervals are too small, then we can't do anything
         // we can't subdivide them
         // so, we will return the full range error
         return fullRangeError
       }
       // now I have the preconditions, I will try to print them
-      reporter.info("New preconditions:")
-      reporter.info(preconditions)
+      //reporter.info("New preconditions:")
+      //reporter.info(preconditions)
       /* 
       List(
 	      List(((qpos5 > 0.2) ? (qpos5 < 0.25)), ((qpos5 > 0.25) ? (qpos5 < 0.3))), 
@@ -660,8 +666,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         //reporter.info("InputValMap:")
         //reporter.info(inputValMap)
 
-        reporter.info("fnc.body.get")
-        reporter.info(fnc.body.get)
+        //reporter.info("fnc.body.get")
+        //reporter.info(fnc.body.get)
         
         val (resRange, _intermediateRanges) = evalRange[AffineForm](fnc.body.get,
             inputValMap.map(x => (x._1 -> AffineForm(x._2))), AffineForm.apply)
@@ -700,12 +706,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           case (pathCond, _body, rangeMapnew) =>
             //reporter.info("inputValMap:")
             //reporter.info(inputValMap)
-            //reporter.info("rangeMap: ")
-            //reporter.info(rangeMap)
-            //reporter.info("rangeMapnew: ")
-            //reporter.info(rangeMapnew)
-            //val temp_res = computeAbsError(expr, typeConfig, constantsPrecision, rangeMapnew, pathCond, approximate)
-            val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError)
+            val temp_precond = inputValMaptoPrecondition(inputValMap)
+            val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError, temp_precond)
             resErrors = resErrors :+ temp_res2  
         })
       })
@@ -714,6 +716,30 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       resErrors.max
 
     }
+
+  def inputValMaptoPrecondition(inputValMap: Map[Identifier, Interval]): Option[Expr] = {
+    // Just read all intervals and add to the Expr as And()s
+    // I will try to do that now
+    var preconditions = List[Expr]()
+    inputValMap.foreach(x => {
+      val id = x._1
+      val interval = x._2
+      //preconditions = preconditions :+ And(GreaterThan(Variable(id), RealLiteral(interval.xlo)), LessThan(Variable(id), RealLiteral(interval.xhi)))
+      preconditions = preconditions :+ GreaterThan(Variable(id), RealLiteral(interval.xlo))
+      preconditions = preconditions :+ LessThan(Variable(id), RealLiteral(interval.xhi))
+    })
+    //reporter.info("preconditions_inside: ")
+    //reporter.info(preconditions)
+    // the next step is somehow to combine all of these into one expression
+    // I will try to do that now, it will be like flatten
+    // Use Seq to flatten the list
+    var result: Option[Expr] = None
+    result = Some(And(preconditions))
+
+    result
+  }
+
+
   
   def takeCombinations(lst: List[List[Expr]]): List[Map[Identifier, Interval]] = {
     if(lst.isEmpty){
@@ -1013,11 +1039,11 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
             candidateTypeConfigs += loweredLeft; candidateTypeConfigs += loweredRight
 
             //reporter.info("second errorfnc")
-            //reporter.info("one run")
+            reporter.info("one run")
             val errorLeft = errorFnc(loweredLeft, highestPrecision)
             //reporter.info("second errorfnc finished")
             //reporter.info("third errorfnc")
-            //reporter.info("one run")
+            reporter.info("one run")
             val errorRight = errorFnc(loweredRight, highestPrecision)
             //reporter.info("third errorfnc finished")
 
