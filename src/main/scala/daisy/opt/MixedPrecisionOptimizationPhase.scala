@@ -37,7 +37,7 @@ import java.net.IDN
 object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   with search.GeneticSearch[Map[Identifier, Precision]] with tools.RoundoffEvaluators {
 
-  val minimumIntervalSize = 0.1
+  val minimumIntervalSize = 0.3
   val epsilonRes = 0.01
 
   /* 
@@ -522,7 +522,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // let's first get the usual range, if it is below the target error, we can skip the rest
       val fullRangeError = computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
       if(fullRangeError <= targetError){
-        //reporter.info("Full range error is below the target error, skipping the rest")
+        reporter.info("Fullrangeerror: " + fullRangeError)
+        reporter.info("Full range error is below the target error, skipping the rest")
         return fullRangeError
       }
       // else, we need to subdivide...
@@ -612,13 +613,56 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           less_than_min_count = less_than_min_count + 1
         }
         else{
+          //preconditions = preconditions :+ List(
+          //  And(
+          //    GreaterThan(var_id, RealLiteral(lower_bound_value)),
+          //    LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+          //  ),
+          //  And(
+          //    GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+          //    LessThan(var_id, RealLiteral(upper_bound_value)),
+          //  ),
+          //)
+          //)
           preconditions = preconditions :+ List(
             And(
               GreaterThan(var_id, RealLiteral(lower_bound_value)),
-              LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.1 + lower_bound_value*0.9))),
             ),
             And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.1 + lower_bound_value*0.9))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.2 + lower_bound_value*0.8))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.2 + lower_bound_value*0.8))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.3 + lower_bound_value*0.7))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.3 + lower_bound_value*0.7))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.4 + lower_bound_value*0.6))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.4 + lower_bound_value*0.6))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.5 + lower_bound_value*0.5))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.5 + lower_bound_value*0.5))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.6 + lower_bound_value*0.4))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.6 + lower_bound_value*0.4))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.7 + lower_bound_value*0.3))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.7 + lower_bound_value*0.3))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.8 + lower_bound_value*0.2))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.8 + lower_bound_value*0.2))),
+              LessThan(var_id, RealLiteral((upper_bound_value*0.9 + lower_bound_value*0.1))),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value*0.9 + lower_bound_value*0.1))),
               LessThan(var_id, RealLiteral(upper_bound_value)),
             ),
           )
@@ -711,6 +755,11 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
             resErrors = resErrors :+ temp_res2  
         })
       })
+
+      reporter.info("fullrangeerror:")
+      reporter.info(fullRangeError)
+      reporter.info("ResErrors.max:")
+      reporter.info(resErrors.max)
 
       // choose max
       resErrors.max
