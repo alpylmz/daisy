@@ -11,6 +11,7 @@ import FinitePrecision._
 import lang.TreeOps.allIDsOf
 import daisy.lang.Identifiers.Identifier
 import daisy.lang.Trees._
+import daisy.opt.MixedPrecisionOptimizationPhase.computeAbsErrorInDiffIntervalsReturnTuple
 
 /**
   Computes and stores intermediate ranges.
@@ -137,12 +138,47 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
         uniformPrecisions = uniformPrecisions + (fnc.id -> uniformPrecision) // so that this info is available in codegen
 
         val precond = fnc.precondition.get // replaced ctx.specAdditionalConstraints(fnc.id)
-        val res = computeRoundoff(inputValMap, inputErrorMap, precisionMap, fncBody,
-          uniformPrecision, precond, ctx)
-        val result: (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval], Map[Identifier, Precision]) = (res._1, res._2, res._3, res._4, precisionMap)
-        (fnc.id -> result)
+        try{
+          val res = computeRoundoff(inputValMap, inputErrorMap, precisionMap, fncBody,
+            uniformPrecision, precond, ctx)
+          val result: (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval], Map[Identifier, Precision]) = (res._1, res._2, res._3, res._4, precisionMap)
+          (fnc.id -> result)
+        } catch {
+          case e: DivisionByZeroException =>
+            val (resRange, intermediateRanges) = computeRange(inputValMap, fncBody, precond)
+            ctx.reporter.warning(s"Main Error Function returned divisionByZero")
+            val temp_res = computeAbsErrorInDiffIntervalsReturnTuple(
+              ctx, prg, fncBody, precisionMap, uniformPrecision, intermediateRanges, Seq(), false, 0.01
+            )
+            //val result: 
+            //  (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval], Map[Identifier, Precision]) = 
+            //    (temp_res, resRange, Map(), intermediateRanges, precisionMap)
+            val result = (temp_res._1, resRange, temp_res._2, intermediateRanges, precisionMap)
+            (fnc.id -> result)
+        }
       }
     }).toMap
+
+    /*
+    (
+      daisy.lang.Identifiers.Identifier, 
+      (
+        daisy.tools.Rational, 
+        daisy.tools.Interval, 
+        scala.collection.immutable.Map[_ <: (daisy.lang.Trees.Expr, daisy.PathCond), daisy.tools.Rational], 
+        Map[(daisy.lang.Trees.Expr, daisy.PathCond),daisy.tools.Interval], 
+        Map[daisy.lang.Identifiers.Identifier,daisy.tools.FinitePrecision.Precision])) <:< 
+    (
+      daisy.lang.Identifiers.Identifier, 
+      (
+        daisy.tools.Rational, 
+        daisy.tools.Interval, 
+        Map[(daisy.lang.Trees.Expr, daisy.PathCond),daisy.tools.Rational], 
+        Map[(daisy.lang.Trees.Expr, daisy.PathCond),daisy.tools.Interval], 
+        Map[daisy.lang.Identifiers.Identifier,daisy.tools.FinitePrecision.Precision]
+      )
+    )
+    */
 
     (ctx.copy(specInputPrecisions = ctx.specInputPrecisions ++ res.mapValues(_._5).toMap,
       uniformPrecisions = ctx.uniformPrecisions ++ uniformPrecisions,
@@ -255,8 +291,6 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
     precisionMap: Map[Identifier, Precision], expr: Expr, constPrecision: Precision, precond: Expr, ctx: Context):
     (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval]) = {
 
-    ctx.reporter.info("Computing range")
-
     val (resRange, intermediateRanges) = computeRange(inputValMap, expr, precond)
 
     // print ranges
@@ -289,27 +323,6 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
 
     // print errors
     ctx.reporter.info("resError: " + resError)
-
-    // print intermediate errors
-    intermediateErrors.foreach({ case (expr, error) =>
-      // if the expr is a let expression, print the last expression
-      // case match
-      expr match {
-        case (a, b) =>
-          val filtered_expr = expressionGetFinalLet(a)
-          filtered_expr match{
-            case Plus(_, _) => 
-            case Minus(_, _) => 
-            case Times(_, _) => 
-            case Division(_, _) => 
-            case FloatLiteral(_) => 
-            case _ => //ctx.reporter.info(s"$filtered_expr: $error")
-          }
-        case _ =>
-          //ctx.reporter.info(s"$expr: $error")
-      }
-      //ctx.reporter.info(s"$expr: $error")
-    })
 
     (resError, resRange, intermediateErrors, intermediateRanges)
   }
