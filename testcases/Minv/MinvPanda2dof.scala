@@ -3,16 +3,14 @@ import Real._
 import javax.security.sasl.RealmCallback
 
 
-
-
 object Minv {
     def firstPass(
         qpos5: Real,
         qpos6: Real
     ) = {
         require(
-            qpos5 > 0.2 && qpos5 < 0.3 &&
-            qpos6 > 0.2 && qpos6 < 0.3 
+            qpos5 > 0.2 && qpos5 < 0.6 &&
+            qpos6 > 0.2 && qpos6 < 0.6
         )
         val sin_qpos5 = sin(qpos5)
         val cos_qpos5 = cos(qpos5)
@@ -252,7 +250,7 @@ object Minv {
 
         Dinv_5_1
         
-    } ensuring(res => res +/- 1e-2)
+    } ensuring(res => res +/- 0.24)
 
 
 

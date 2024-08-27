@@ -37,8 +37,8 @@ import java.net.IDN
 object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   with search.GeneticSearch[Map[Identifier, Precision]] with tools.RoundoffEvaluators {
 
-  val minimumIntervalSize = 0.3
-  val epsilonRes = 0.01
+  val minimumIntervalSize = 0.1
+  val epsilonRes = 0.1
 
   /* 
    * Copied from daisy/src/main/scala/daisy/Main.scala, and stripped down to the essentials.
@@ -314,10 +314,12 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           Seq(FixedPrecision(8))
         }
         else if(b < 32){
-          Seq(FixedPrecision(8), FixedPrecision(16))
+          //Seq(FixedPrecision(8), FixedPrecision(16))
+          Seq(FixedPrecision(16))
         }
         else if(b < 64){
-          Seq(FixedPrecision(8), FixedPrecision(16), FixedPrecision(32))
+          //Seq(FixedPrecision(8), FixedPrecision(16), FixedPrecision(32))
+          Seq(FixedPrecision(16), FixedPrecision(32))       
         }
         else{
           Seq(FixedPrecision(8), FixedPrecision(16), FixedPrecision(32), FixedPrecision(64))
@@ -436,6 +438,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
                 case "delta" =>
 
                   val (tpeconfig, prec) = (deltaDebuggingSearch(ctx, body, targetError, fnc.params, costFnc,
+                    //asd
                     computeAbsErrorInDiffIntervals(ctx, prg, body, _, _, rangeMap, pathCond, approximate = true, targetError),
                     //computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
@@ -485,12 +488,22 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       val inputErrorMap: Map[Identifier, Rational] = freeVariablesOf(fullBody).map({
         case id => (id -> newTypeConfig(id).absRoundoff(_rangeMap((Variable(id), emptyPath))))
       }).toMap
-      val (resRoundoff, _) = evalRoundoff[Interval](updatedBody, _rangeMap ++ newRangeMap,
-        newTypeConfig, inputErrorMap.mapValues(Interval.+/-).toMap, Interval.zero, Interval.+/-,
-        Interval.apply, constPrec, true, false)
-      val resError = Interval.maxAbs(resRoundoff.toInterval)
+      //val (resRoundoff, _) = evalRoundoff[Interval](updatedBody, _rangeMap ++ newRangeMap,
+      //  newTypeConfig, inputErrorMap.mapValues(Interval.+/-).toMap, Interval.zero, Interval.+/-,
+      //  Interval.apply, constPrec, true, false)
+      //val resError = Interval.maxAbs(resRoundoff.toInterval)
+      // use computeAbsErrorInDiffIntervals instead of computeAbsError
+      val resError = computeAbsErrorInDiffIntervals(
+        ctx, prg, fullBody, newTypeConfig, constPrec, _rangeMap, emptyPath, approximate = true, epsilonRes
+        )
 
+      reporter.info("resAbsoluteErrors:")
+      reporter.info(resAbsoluteErrors)
+      reporter.info("finalresError:")
+      reporter.info(resError)
       resAbsoluteErrors = resAbsoluteErrors + (fnc.id -> resError)
+      reporter.info("Improved error:")
+      reporter.info(resAbsoluteErrors)
       precisionMap = precisionMap + (fnc.id -> (newTypeConfig))
       newIntermediateRanges = newIntermediateRanges + (fnc.id -> newRangeMap)
       newInputErrors = newInputErrors + (fnc.id -> inputErrorMap)
@@ -522,8 +535,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // let's first get the usual range, if it is below the target error, we can skip the rest
       val fullRangeError = computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
       if(fullRangeError <= targetError){
-        reporter.info("Fullrangeerror: " + fullRangeError)
-        reporter.info("Full range error is below the target error, skipping the rest")
+        //println(fullRangeError + " b") // below
         return fullRangeError
       }
       // else, we need to subdivide...
@@ -613,17 +625,19 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           less_than_min_count = less_than_min_count + 1
         }
         else{
-          //preconditions = preconditions :+ List(
-          //  And(
-          //    GreaterThan(var_id, RealLiteral(lower_bound_value)),
-          //    LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
-          //  ),
-          //  And(
-          //    GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
-          //    LessThan(var_id, RealLiteral(upper_bound_value)),
-          //  ),
-          //)
-          //)
+          
+          preconditions = preconditions :+ List(
+            And(
+              GreaterThan(var_id, RealLiteral(lower_bound_value)),
+              LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+            ),
+            And(
+              GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+              LessThan(var_id, RealLiteral(upper_bound_value)),
+            ),
+          )
+          
+          /*
           preconditions = preconditions :+ List(
             And(
               GreaterThan(var_id, RealLiteral(lower_bound_value)),
@@ -666,6 +680,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
               LessThan(var_id, RealLiteral(upper_bound_value)),
             ),
           )
+          */
         }
         i = i + 2
       }
@@ -677,6 +692,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         // if all the intervals are too small, then we can't do anything
         // we can't subdivide them
         // so, we will return the full range error
+        //println(fullRangeError + " s") // small
         return fullRangeError
       }
       // now I have the preconditions, I will try to print them
@@ -756,10 +772,17 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         })
       })
 
-      reporter.info("fullrangeerror:")
-      reporter.info(fullRangeError)
-      reporter.info("ResErrors.max:")
-      reporter.info(resErrors.max)
+      //reporter.info("fullrangeerror:")
+      //reporter.info(fullRangeError)
+      //reporter.info("ResErrors.max:")
+      //reporter.info(resErrors.max)
+      if(resErrors.max < fullRangeError){
+        println(resErrors.max + " " + fullRangeError + " I")
+      }
+      else{
+        println("NI: " + resErrors + " " + fullRangeError)
+      }
+
 
       // choose max
       resErrors.max
@@ -782,8 +805,6 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           fullRangeError = Rational(424242424)
         }
       }
-      ctx.reporter.info("Full range error:")
-      ctx.reporter.info(fullRangeError)
       if(fullRangeError <= targetError){
         //reporter.info("Full range error is below the target error, skipping the rest")
         return (fullRangeError, intermediateErrors)
