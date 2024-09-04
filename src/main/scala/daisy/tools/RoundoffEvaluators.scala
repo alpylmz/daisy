@@ -153,6 +153,46 @@ trait RoundoffEvaluators extends RangeEvaluators {
     precomputedIntermedErrs: CachingMap[(Expr, PathCond), (T, Precision)] = CachingMap.empty[(Expr, PathCond), (T, Precision)]()
     ): (T, Map[(Expr, PathCond), T]) = {
 
+    var _computeNewErrorTime = 0.0
+    var _realLiteralTime = 0.0
+    var _int32LiteralTime = 0.0
+    var _finitePrecisionLiteralTime = 0.0
+    var _plusTime = 0.0
+    var _minusTime = 0.0
+    var _timesTime = 0.0
+    var _fmaTime = 0.0
+    var _divisionTime = 0.0
+    var _intPowTime = 0.0
+    var _uminusTime = 0.0
+    var _sqrtTime = 0.0
+    var _sinTime = 0.0
+    var _cosTime = 0.0
+    var _tanTime = 0.0
+    var _asinTime = 0.0
+    var _acosTime = 0.0
+    var _atanTime = 0.0
+    var _expTime = 0.0
+    var _logTime = 0.0
+    var _approxTime = 0.0
+    var _letTime = 0.0
+    var _variableTime = 0.0
+    var _ifExprTime = 0.0
+    var _castTime = 0.0
+    var _approxPolyTime = 0.0
+
+    var _minuseval1Time = 0.0
+    var _minuseval2Time = 0.0
+    var _minuseval3Time = 0.0
+
+    var _timeseval1Time = 0.0
+    var _timeseval2Time = 0.0
+    var _timeseval3Time = 0.0
+    var _timeseval4Time = 0.0
+
+    var _leteval1Time = 0.0
+    var _leteval2Time = 0.0
+    var _leteval3Time = 0.0
+
 
     val intermediateErrors = if (precomputedIntermedErrs.nonEmpty) precomputedIntermedErrs else new CachingMap[(Expr, PathCond), (T, Precision)]
 
@@ -167,18 +207,31 @@ trait RoundoffEvaluators extends RangeEvaluators {
     def _computeNewError(range: Interval, propagatedError: T, prec: Precision,
                          roundoffComputationMethod: Interval => Rational): (T, Precision) =
     if (trackRoundoffErrors) {
+      val startTime = System.currentTimeMillis()
       val actualRange: Interval = range + propagatedError.toInterval
       var rndoff = roundoffComputationMethod(actualRange)
       if (approxRoundoff) {
         rndoff = Rational.limitSize(rndoff)
       }
+      val endTime = System.currentTimeMillis()
+      _computeNewErrorTime = _computeNewErrorTime + (endTime - startTime)
       (propagatedError +/- rndoff, prec)
     } else {
       (propagatedError, prec)
     }
 
-    def eval(e: Expr, p: PathCond): (T, Precision) = intermediateErrors.getOrAdd((e, p), {
+    var evalminus2timemeasuring = 0.0
+    var evalminus2timemeasuringTotal = 0.0
 
+    def eval(e: Expr, p: PathCond): (T, Precision) = {
+      if(evalminus2timemeasuring != 0.0){
+        println("evalminus2timemeasuring: " + evalminus2timemeasuring)
+        println("currtime: " + System.currentTimeMillis())
+        evalminus2timemeasuringTotal = evalminus2timemeasuringTotal + (System.currentTimeMillis() - evalminus2timemeasuring)
+        evalminus2timemeasuring = 0.0
+      }
+
+      intermediateErrors.getOrAdd((e, p), {
       case x @ (RealLiteral(r), _) =>
         val error = if (constantsPrecision.canRepresent(r) || !trackRoundoffErrors) {
           zeroError
@@ -207,26 +260,52 @@ trait RoundoffEvaluators extends RangeEvaluators {
         computeNewError(range(x), propagatedError, getUpperBound(precLhs, precRhs)  /* Scala semantics */)
 
       case x @ (Minus(lhs, rhs), path) =>
+        val startTime = System.currentTimeMillis()
+        val startTimeEval1 = System.currentTimeMillis()
         val (errorLhs, precLhs) = eval(lhs, path)
+        val endTimeEval1 = System.currentTimeMillis()
+        _minuseval1Time = _minuseval1Time + (endTimeEval1 - startTimeEval1)
+        val startTimeEval2 = System.currentTimeMillis()
+        evalminus2timemeasuring = System.currentTimeMillis()
         val (errorRhs, precRhs) = eval(rhs, path)
+        val endTimeEval2 = System.currentTimeMillis()
+        _minuseval2Time = _minuseval2Time + (endTimeEval2 - startTimeEval2)
 
+        val startTimeEval3 = System.currentTimeMillis()
         val propagatedError = errorLhs - errorRhs
         val precision = getUpperBound(precLhs, precRhs)
+        val endTimeEval3 = System.currentTimeMillis()
+        _minuseval3Time = _minuseval3Time + (endTimeEval3 - startTimeEval3)
 
         if (precision.isInstanceOf[FloatPrecision] && sterbenzTheoremApplies(range(lhs, path), range(rhs, path))) {
+          _minusTime = _minusTime + (System.currentTimeMillis() - startTime)
           (propagatedError, precision)
         } else {
+          _minusTime = _minusTime + (System.currentTimeMillis() - startTime)
           computeNewError(range(x), propagatedError, precision)
         }
 
       case x @ (Times(lhs, rhs), path) =>
+        val startTime = System.currentTimeMillis()
+        val startTime1 = System.currentTimeMillis()
         val (errorLhs, precLhs) = eval(lhs, path)
+        val endTime1 = System.currentTimeMillis
+        _timeseval1Time = _timeseval1Time + (endTime1 - startTime1)
+        val startTime2 = System.currentTimeMillis()
         val (errorRhs, precRhs) = eval(rhs, path)
+        val endTime2 = System.currentTimeMillis()
+        _timeseval2Time = _timeseval2Time + (endTime2 - startTime2)
 
+        val startTime3 = System.currentTimeMillis()
         val rangeLhs = range(lhs, path)
         val rangeRhs = range(rhs, path)
+        val endTime3 = System.currentTimeMillis()
+        _timeseval3Time = _timeseval3Time + (endTime3 - startTime3)
+        val startTime4 = System.currentTimeMillis()
         val abstractRangeLhs = interval2T(rangeLhs)
         val abstractRangeRhs = interval2T(rangeRhs)
+        val endTime4 = System.currentTimeMillis()
+        _timeseval4Time = _timeseval4Time + (endTime4 - startTime4)
 
         val propagatedError =
           abstractRangeLhs * errorRhs +
@@ -237,12 +316,15 @@ trait RoundoffEvaluators extends RangeEvaluators {
         // No roundoff error if one of the operands is a non-negative power of 2
         if ((rangeLhs.isNonNegative && rangeLhs.isPowerOf2)
           || (rangeRhs.isNonNegative && rangeRhs.isPowerOf2)) {
+          _timesTime = _timesTime + (System.currentTimeMillis() - startTime)
           (propagatedError, precision)
         } else {
+          _timesTime = _timesTime + (System.currentTimeMillis() - startTime)
           computeNewError(range(x), propagatedError, precision)
         }
 
       case x @ (FMA(fac1, fac2, sum), path) =>
+        val startTime = System.currentTimeMillis()
         val (errorFac1, precFac1) = eval(fac1, path)
         val (errorFac2, precFac2) = eval(fac2, path)
         val (errorSum, precSum) = eval(sum, path)
@@ -256,9 +338,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
           errorFac1 * errorFac2 +
           errorSum
 
+        _fmaTime = _fmaTime + (System.currentTimeMillis() - startTime)
         computeNewError(range(x), propagatedError, getUpperBound(precFac1, precFac2, precSum))
 
       case x @ (Division(lhs, rhs), path) =>
+        val startTime = System.currentTimeMillis()
         val (errorLhs, precLhs) = eval(lhs, path)
         val (errorRhs, precRhs) = eval(rhs, path)
 
@@ -284,9 +368,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
           interval2T(inverse) * errorLhs +
           errorLhs * invErr
 
+        _divisionTime = _divisionTime + (System.currentTimeMillis() - startTime)
         computeNewError(range(x), propagatedError, getUpperBound(precLhs, precRhs))
 
       case x @ (IntPow(base, n), path) =>
+        val startTime = System.currentTimeMillis()
         val (errorT, prec) = eval(base, path)
         val rangeT = interval2T(range(base, path))
 
@@ -299,6 +385,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
         // The error of pow in java.Math is 1 ulp, thus we rely that the method
         // computeNewErrorTranscendental gives us 1 ulp error
+        _intPowTime = _intPowTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(r.toInterval, e, prec)
 
       case x @ (UMinus(t), path) =>
@@ -306,6 +393,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
         (- error, prec)
 
       case x @ (Sqrt(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO: needs to fail for fixed-point precision
         val (errorT, prec) = eval(t, path)
         val rangeT = range(t, path)
@@ -332,9 +420,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
         // TODO: check that this operation exists for this precision
         //println("range map is " + range)
+        _sqrtTime = _sqrtTime + (System.currentTimeMillis() - startTime)
         computeNewError(range(x), propagatedError, prec)
 
       case x @ (Sin(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -346,9 +436,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _sinTime = _sinTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Cos(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -360,9 +452,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _cosTime = _cosTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Tan(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -374,9 +468,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _tanTime = _tanTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Asin(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -387,9 +483,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _asinTime = _asinTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Acos(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -400,9 +498,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _acosTime = _acosTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Atan(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -422,9 +522,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _atanTime = _atanTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Exp(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -438,9 +540,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _expTime = _expTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Log(t), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
@@ -453,9 +557,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
 
         // TODO: check that this operation exists for this precision
+        _logTime = _logTime + (System.currentTimeMillis() - startTime)
         computeNewErrorTranscendental(range(x), propagatedError, prec)
 
       case x @ (Approx(original, t, metalibmError, errorMultiplier, _, _), path) =>
+        val startTime = System.currentTimeMillis()
         // TODO not supported for fixed-points
         // TODO: figure out which approach to use
         //val (errorT, prec) = eval(t, path, false)
@@ -465,11 +571,17 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val propagatedError = errorT * errorMultiplier
         val newError = propagatedError +/- absoluteMetalibmError
 
+        _approxTime = _approxTime + (System.currentTimeMillis() - startTime)
         (newError, prec)
 
       case x @ (Let(id, value, body), path) =>
+        val startTime = System.currentTimeMillis()
+        val startTime1 = System.currentTimeMillis()
         val (valueError, valuePrec) = eval(value, path)
+        val endTime1 = System.currentTimeMillis()
+        _leteval1Time = _leteval1Time + (endTime1 - startTime1)
 
+        val startTime2 = System.currentTimeMillis()
         val idPrec = precision(id)
         val error = if (idPrec < valuePrec) { // we need to cast down
           val valueRange = range(value, path)
@@ -477,8 +589,14 @@ trait RoundoffEvaluators extends RangeEvaluators {
         } else {
           valueError
         }
+        val endTime2 = System.currentTimeMillis()
+        _leteval2Time = _leteval2Time + (endTime2 - startTime2)
 
+        val startTime3 = System.currentTimeMillis()
         intermediateErrors.put((Variable(id), path), (error, valuePrec)) // no problem as identifiers are unique
+        val endTime3 = System.currentTimeMillis()
+        _leteval3Time = _leteval3Time + (endTime3 - startTime3)
+        _letTime = _letTime + (System.currentTimeMillis() - startTime)
         eval(body, path)
 
       case (Variable(id), path) =>
@@ -488,6 +606,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
           throw new Exception("Unknown variable: " + id)
 
       case x @ (IfExpr(cond, thenn, elze), path) =>
+        val startTime = System.currentTimeMillis()
 
         // a branch is feasible if the range for it exists
         val thenRes: Option[(T, Precision)] = range.get((thenn, path :+ cond)) match {
@@ -501,32 +620,42 @@ trait RoundoffEvaluators extends RangeEvaluators {
         }
 
         (thenRes, elseRes) match {
-          case (Some((errorThen, precThen)), Some((errorElse, precElse))) =>
+          case (Some((errorThen, precThen)), Some((errorElse, precElse))) => {
             val propagatedError = interval2T(errorThen.toInterval.union(errorElse.toInterval))// take max of the two errors
+            _ifExprTime = _ifExprTime + (System.currentTimeMillis() - startTime)
             computeNewError(range(x), propagatedError, getUpperBound(precThen, precElse))
+          }
 
-          case (Some((errorThen, precThen)), None) =>
+          case (Some((errorThen, precThen)), None) =>{
+            _ifExprTime = _ifExprTime + (System.currentTimeMillis() - startTime)
             computeNewError(range(x), errorThen, precThen)
+          }
 
-          case (None, Some((errorElse, precElse))) =>
+          case (None, Some((errorElse, precElse))) =>{
+            _ifExprTime = _ifExprTime + (System.currentTimeMillis() - startTime)
             computeNewError(range(x), errorElse, precElse)
+          }
 
           case (None, None) => // should not happen; should have already failed for ranges
             throw new Exception("Not supported")
         }
 
       case x @ (Cast(t, FinitePrecisionType(prec)), path) =>
+        val startTime = System.currentTimeMillis()
         val (errorT, precT) = eval(t, path)
 
         if (prec > precT) {
           // upcast does not lead to roundoff error
+          _castTime = _castTime + (System.currentTimeMillis() - startTime)
           (errorT, prec)
         } else {
           // add new roundoff error corresponding to the cast precision
+          _castTime = _castTime + (System.currentTimeMillis() - startTime)
           computeNewError(range(x), errorT, prec)
         }
 
       case x @ (ApproxPoly(orig, _, fncId, totalError), path) =>
+        val startTime = System.currentTimeMillis()
         val approxPrec = (fncId.getType: @unchecked) match {
           case FinitePrecisionType(a) => Some(a)
           case _ =>
@@ -535,16 +664,69 @@ trait RoundoffEvaluators extends RangeEvaluators {
         }
 
         // TODO: store resultAbsError directly in ApproxNode?
-        if (resultAbsErrors.contains(fncId))
+        if (resultAbsErrors.contains(fncId)){
+          _approxPolyTime = _approxPolyTime + (System.currentTimeMillis() - startTime)
           (fromError(resultErrorsMetalibm(x._1) + resultAbsErrors(fncId)), approxPrec.get)
-        else
+        }
+        else{
+          _approxPolyTime = _approxPolyTime + (System.currentTimeMillis() - startTime)
           (fromError(totalError), approxPrec.get) // for another Metalibm phase (not ApproxPhase)
+        }
+
 
       case x => throw new Exception(s"Not supported $x")
 
     })
+  }
 
+    println("starting eval")
+    val startEval = System.currentTimeMillis()
     val (resError, _) = eval(expr, emptyPath)
+    val endEval = System.currentTimeMillis()
+    println(s"eval time: ${endEval - startEval} ms")
+    println(s"_computeNewError time: " + _computeNewErrorTime)
+    println(s"_realLiteral time: " + _realLiteralTime)
+    println(s"_int32Literal time: " + _int32LiteralTime)
+    println(s"_finitePrecisionLiteral time: " + _finitePrecisionLiteralTime)
+    println(s"_plus time: " + _plusTime)
+    println(s"_minus time: " + _minusTime)
+    println(s"_times time: " + _timesTime)
+    println(s"_fma time: " + _fmaTime)
+    println(s"_division time: " + _divisionTime)
+    println(s"_intPow time: " + _intPowTime)
+    println(s"_uminus time: " + _uminusTime)
+    println(s"_sqrt time: " + _sqrtTime)
+    println(s"_sin time: " + _sinTime)
+    println(s"_cos time: " + _cosTime)
+    println(s"_tan time: " + _tanTime)
+    println(s"_asin time: " + _asinTime)
+    println(s"_acos time: " + _acosTime)
+    println(s"_atan time: " + _atanTime)
+    println(s"_exp time: " + _expTime)
+    println(s"_log time: " + _logTime)
+    println(s"_approx time: " + _approxTime)
+    println(s"_let time: " + _letTime)
+    println(s"_variable time: " + _variableTime)
+    println(s"_ifExpr time: " + _ifExprTime)
+    println(s"_cast time: " + _castTime)
+    println(s"_approxPoly time: " + _approxPolyTime)
+    val allOthers = _realLiteralTime + _int32LiteralTime + _finitePrecisionLiteralTime + _plusTime + _minusTime + _timesTime + _fmaTime + _divisionTime + _intPowTime + _uminusTime + _sqrtTime + _sinTime + _cosTime + _tanTime + _asinTime + _acosTime + _atanTime + _expTime + _logTime + _approxTime + _letTime + _variableTime + _ifExprTime + _castTime + _approxPolyTime
+    println(s"all others: $allOthers")
+    
+    println("microbenchmarks")
+    println(s"_minuseval1 time: " + _minuseval1Time)
+    println(s"_minuseval2 time: " + _minuseval2Time)
+    println(s"_minuseval3 time: " + _minuseval3Time)
+    println(s"_timeseval1 time: " + _timeseval1Time)
+    println(s"_timeseval2 time: " + _timeseval2Time)
+    println(s"_timeseval3 time: " + _timeseval3Time)
+    println(s"_timeseval4 time: " + _timeseval4Time)
+    println(s"_leteval1 time: " + _leteval1Time)
+    println(s"_leteval2 time: " + _leteval2Time)
+    println(s"_leteval3 time: " + _leteval3Time)
+
+    println(s"evalminus2timemeasuringTotal: $evalminus2timemeasuringTotal")
+
     (resError, intermediateErrors.mapValues(_._1).toMap)
   }
 
