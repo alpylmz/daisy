@@ -69,12 +69,12 @@ object AbsErrorPhase extends DaisyPhase with tools.RoundoffEvaluators {
       }).toMap
 
 
-      val (resRoundoff, allErrors) = evalRoundoff[AffineForm](fncBody, intermediateRanges,
+      val (resRoundoff, allErrors) = evalRoundoff[Interval](fncBody, intermediateRanges,
         precisionMap,
-        inputErrorMap.mapValues(AffineForm.+/-).toMap,
-        zeroError = AffineForm.zero,
-        fromError = AffineForm.+/-,
-        interval2T = AffineForm.apply,
+        inputErrorMap.mapValues(Interval.+/-).toMap,
+        zeroError = Interval.zero,
+        fromError = Interval.+/-,
+        interval2T = Interval.apply,
         constantsPrecision = uniformPrecision,
         trackRoundoffErrs,
         resultAbsErrors = ctx.resultAbsoluteErrors,

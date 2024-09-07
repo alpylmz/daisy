@@ -439,6 +439,18 @@ object Rational {
     if (x < y) x else y
   }
 
+  def min(x: Rational, y: Rational, z: Rational, t: Rational): Rational = {
+  val xyMin = if (x < y) x else y
+  val ztMin = if (z < t) z else t
+  if (xyMin < ztMin) xyMin else ztMin
+}
+
+  def max(x: Rational, y: Rational, z: Rational, t: Rational): Rational = {
+  val xyMax = if (x > y) x else y
+  val ztMax = if (z > t) z else t
+  if (xyMax > ztMax) xyMax else ztMax
+}
+
   /* def maxAbs(nums: Seq[Rational]): Rational = nums match {
     case Seq(n) => abs(n)
     case _ => max(abs(nums.head), maxAbs(nums.tail))

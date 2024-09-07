@@ -82,9 +82,7 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
   def *(y: Interval): Interval = y match {
     case Interval(ylo, yhi) =>
       // TODO: test via unit test that this works and that we need this
-      if (xlo == zero && xhi == zero) {
-        Interval(zero, zero)
-      } else if (xlo >= zero) {
+      if (xlo >= zero) {
         if (ylo >= zero) {
           Interval(xlo * ylo, xhi * yhi)
         } else if (yhi <= zero) {
@@ -93,16 +91,7 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
           Interval(xhi * ylo, xhi * yhi)
         }
       }
-      else if (xhi <= zero) {
-        if (ylo >= zero) {
-          Interval(xlo * yhi, xhi * ylo)
-        } else if (yhi <= zero) {
-          Interval(xhi * yhi, xlo * ylo)
-        } else {
-          Interval(xlo * yhi, xlo * ylo)
-        }
-      }
-      else {
+      else if (xhi > zero) {
         if (ylo >= zero) {
           Interval(xlo * yhi, xhi * yhi)
         } else if (yhi <= zero) {
@@ -111,6 +100,15 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
           val a = min(xlo * yhi, xhi * ylo)
           val b = max(xlo * ylo, xhi * yhi)
           Interval(a, b)
+        }
+      }
+      else {
+        if (ylo >= zero) {
+          Interval(xlo * yhi, xhi * ylo)
+        } else if (yhi <= zero) {
+          Interval(xhi * yhi, xlo * ylo)
+        } else {
+          Interval(xlo * yhi, xlo * ylo)
         }
       }
   }
@@ -142,6 +140,8 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
           Interval(xhi / yhi, xlo / yhi)
         }
       } else {
+        println("ylow: " + ylo)
+        println("yhi: " + yhi)
         throw DivisionByZeroException("trying to divide by interval containing 0")
       }
 

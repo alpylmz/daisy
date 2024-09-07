@@ -278,15 +278,19 @@ object Main {
 
       if (ctx.hasFlag("mixed-tuning")) {
         pipeline >>= analysis.RangePhase >>
-          opt.MixedPrecisionOptimizationPhase
+          opt.MixedPrecisionOptimizationPhase >>
+          backend.InfoPhase >>
+          backend.CodeGenerationPhase
       } else
         pipeline >>= analysis.DataflowPhase
 
-      pipeline >>= opt.ApproxPhase >>
-        analysis.AbsErrorPhase >>
-        backend.InfoPhase >>
-        backend.CodeGenerationPhase
-
+      if(!ctx.hasFlag("mixed-tuning")) {
+        pipeline >>= opt.ApproxPhase >>
+          analysis.AbsErrorPhase >>
+          backend.InfoPhase >>
+          backend.CodeGenerationPhase
+      }
+      
     } else if (ctx.hasFlag("metalibm") && ctx.hasFlag("mixed-tuning")){
       // for now will only consider depth = 0 and equal error distribution
       pipeline >>= transform.TACTransformerPhase >>
