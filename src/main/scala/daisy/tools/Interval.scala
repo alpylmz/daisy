@@ -63,6 +63,8 @@ class IntervalClass(xllo: Double = 0.0, xhhi: Double = 0.0) extends Structure {
 
 trait foo extends Library {
   def _Z10ifelsefuncffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float): IntervalClass
+  def _Z15ifelsefunclowerffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float): Float
+  def _Z15ifelsefuncupperffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float): Float
 }
 
 case class PartialInterval(xlo: Option[Rational], xhi: Option[Rational])
@@ -104,16 +106,14 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
     Interval(xlo - other.xhi, xhi - other.xlo)
   }
 
+  
   def *(y: Interval): Interval = {
-    println("Interval multiplication")
-    println("xlo: " + xlo)
-    println("xhi: " + xhi)
-    println("ylo: " + y.xlo)
-    println("yhi: " + y.xhi)
-    val intclass: IntervalClass = multFunc._Z10ifelsefuncffff(xlo.toFloat, xhi.toFloat, y.xlo.toFloat, y.xhi.toFloat)
-    Interval(double2Rational(intclass.xlo), double2Rational(intclass.xhi))
+    val lowerb = multFunc._Z15ifelsefunclowerffff(xlo.toFloat, xhi.toFloat, y.xlo.toFloat, y.xhi.toFloat)
+    val upperb = multFunc._Z15ifelsefuncupperffff(xlo.toFloat, xhi.toFloat, y.xlo.toFloat, y.xhi.toFloat)
+    Interval(double2Rational(lowerb), double2Rational(upperb))
   }
-
+  
+  
   /*
   def *(y: Interval): Interval = y match {
     case Interval(ylo, yhi) =>
@@ -149,6 +149,9 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
       }
   }
   */
+  
+  
+
 
   // the lazy version
   def *(r: Rational): Interval = this * Interval(r, r)

@@ -45,6 +45,7 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
     rangeMethod = ctx.option[String]("rangeMethod")
     errorMethod = ctx.option[String]("errorMethod")
     trackRoundoffErrs = !ctx.hasFlag("noRoundoff")
+    ctx.reporter.info("taking off")
 
     val choosePrecision = ctx.option[String]("choosePrecision")
 
@@ -58,7 +59,7 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
 
     val fncsToConsider = if (ctx.hasFlag("approx")) functionsToConsider(ctx, prg).filter(_.returnType == RealType)
       else functionsToConsider(ctx, prg)
-
+    ctx.reporter.info("initialized some variables")
     // returns (abs error, result range, interm. errors, interm. ranges)
     val res: Map[Identifier, (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval], Map[Identifier, Precision])] =
       fncsToConsider.map({ fnc =>
@@ -139,8 +140,10 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
 
         val precond = fnc.precondition.get // replaced ctx.specAdditionalConstraints(fnc.id)
         try{
+          reporter.info("starting roundoff at time: " + System.currentTimeMillis())
           val res = computeRoundoff(inputValMap, inputErrorMap, precisionMap, fncBody,
             uniformPrecision, precond, ctx)
+          reporter.info("finished roundoff at time: " + System.currentTimeMillis())
           val result: (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval], Map[Identifier, Precision]) = (res._1, res._2, res._3, res._4, precisionMap)
           (fnc.id -> result)
         } catch {
@@ -228,6 +231,7 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
 
     (errorMethod: @unchecked) match {
       case "interval" =>
+        /*
         val (resRoundoff, allErrors) = evalRoundoff[Interval](expr, intermediateRanges,
           precisionMap,
           inputErrorMap.mapValues(Interval.+/-).toMap,
@@ -238,9 +242,21 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
           trackRoundoffErrs)
 
         (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(Interval.maxAbs).toMap)
+        */
+        
+        val (resRoundoff, allErrors) = evalRoundoffInterval(expr, intermediateRanges,
+          precisionMap,
+          inputErrorMap.mapValues(Interval.+/-).toMap,
+          zeroError = Interval.zero,
+          fromError = Interval.+/-,
+          interval2T = Interval.apply,
+          constantsPrecision = constPrecision,
+          trackRoundoffErrs)
 
+        (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(Interval.maxAbs).toMap)
+      
       case "affine" =>
-
+        println("computing roundoff errors with affine forms")
         val (resRoundoff, allErrors) = evalRoundoff[AffineForm](expr, intermediateRanges,
           precisionMap,
           inputErrorMap.mapValues(AffineForm.+/-).toMap,
@@ -291,7 +307,9 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
     precisionMap: Map[Identifier, Precision], expr: Expr, constPrecision: Precision, precond: Expr, ctx: Context):
     (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval]) = {
 
+    val startTime = System.currentTimeMillis()
     val (resRange, intermediateRanges) = computeRange(inputValMap, expr, precond)
+    ctx.reporter.info(s"Range computation took ${System.currentTimeMillis() - startTime} ms")
 
     // print ranges
     ctx.reporter.info("resRange: " + resRange)
@@ -318,8 +336,10 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
     // print curr time
     ctx.reporter.info("Computing errors")
 
+    val errorStartTime = System.currentTimeMillis()
     val (resError, intermediateErrors) = computeErrors(intermediateRanges, inputErrorMap, precisionMap, expr,
       constPrecision)
+    ctx.reporter.info(s"Error computation took ${System.currentTimeMillis() - errorStartTime} ms")
 
     // print errors
     ctx.reporter.info("resError: " + resError)

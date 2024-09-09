@@ -11,7 +11,18 @@ import Rational._
 import daisy.utils.CachingMap
 import tools.{AffineForm, Interval, Rational}
 
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Structure;
+
+trait roundoff2 extends Library {
+  def _Z14wholemultlowerffffffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float, xlo2: Float, xhi2: Float, ylo2: Float, yhi2: Float): Float
+  def _Z14wholemultupperv(): Float
+}
+
 trait RoundoffEvaluators extends RangeEvaluators {
+
+  val multFunc = Native.loadLibrary("foo", classOf[roundoff2])
 
   /**
    * Calculates the roundoff error for a given uniform precision
@@ -276,28 +287,11 @@ trait RoundoffEvaluators extends RangeEvaluators {
         abstractRangeRhsTime += (endtime4 - startTime4) / 1000000.0
 
         val starttime44 = System.nanoTime()
-        // abstractRangeLhs is interval.apply's return type, which means an interval
-        //println("errorRhs: " + errorRhs)
-        // for some reason errorRhs is an interval, too
-        //println("multiplying start")
         val propagatedError1 = abstractRangeLhs * errorRhs
-        val endTime33 = System.nanoTime()
-        propagatedError1time += (endTime33 - starttime44) / 1000000.0
-        val starttime45 = System.nanoTime()
         val propagatedError2 = abstractRangeRhs * errorLhs
-        val endTime34 = System.nanoTime()
-        propagatedError2time += (endTime34 - starttime45) / 1000000.0
-        val starttime46 = System.nanoTime()
-        val errorLhstype: T = errorLhs
-        //println("Error Lhs: " + errorLhs)
-        //println("Error Rhs: " + errorRhs)
         val propagatedError3 = errorLhs * errorRhs
-        val endTime35 = System.nanoTime()
-        propagatedError3time += (endTime35 - starttime46) / 1000000.0
-        val starttime47 = System.nanoTime()
         val propagatedError = propagatedError1 + propagatedError2 + propagatedError3
         val endTime44 = System.nanoTime()
-        propagatedError4time += (endTime44 - starttime47) / 1000000.0
         multiplytime += (endTime44 - starttime44) / 1000000.0
 
         val startTime5 = System.nanoTime()
@@ -321,6 +315,17 @@ trait RoundoffEvaluators extends RangeEvaluators {
           computenewerrortime += (endTime - startTime6) / 1000000.0
           timesTime += (endTime - startTime) / 1000000.0
           res
+        }
+      
+      case x @ (Cast(t, FinitePrecisionType(prec)), path) =>
+        val (errorT, precT) = eval(t, path)
+
+        if (prec > precT) {
+          // upcast does not lead to roundoff error
+          (errorT, prec)
+        } else {
+          // add new roundoff error corresponding to the cast precision
+          computeNewError(range(x), errorT, prec)
         }
 
       case x @ (Division(lhs, rhs), path) =>
@@ -512,7 +517,6 @@ trait RoundoffEvaluators extends RangeEvaluators {
     var cosTime = 0.0
     var uminusTime = 0.0
     var letTime = 0.0
-//
     var rangeLhsTime = 0.0
     var rangeRhsTime = 0.0
     var abstractRangeLhsTime = 0.0
@@ -602,32 +606,29 @@ trait RoundoffEvaluators extends RangeEvaluators {
         abstractRangeRhsTime += (endtime4 - startTime4) / 1000000.0
 
         val starttime44 = System.nanoTime()
-        // abstractRangeLhs is interval.apply's return type, which means an interval
-        //println("errorRhs: " + errorRhs)
-        // for some reason errorRhs is an interval, too
-        //println("multiplying start")
-        val propagatedError1 = abstractRangeLhs * errorRhs
-        val endTime33 = System.nanoTime()
-        propagatedError1time += (endTime33 - starttime44) / 1000000.0
-        val starttime45 = System.nanoTime()
-        val propagatedError2 = abstractRangeRhs * errorLhs
-        val endTime34 = System.nanoTime()
-        propagatedError2time += (endTime34 - starttime45) / 1000000.0
-        val starttime46 = System.nanoTime()
-        val errorLhstype: daisy.tools.Interval = errorLhs
-        //println("Error Lhs: " + errorLhs)
-        //println("Error Rhs: " + errorRhs)
-        val propagatedError3 = errorLhs * errorRhs
-        val endTime35 = System.nanoTime()
-        propagatedError3time += (endTime35 - starttime46) / 1000000.0
-        val starttime47 = System.nanoTime()
-        //val propagatedError = propagatedError1 + propagatedError2 + propagatedError3
-        val propagatedError = Interval(
-          propagatedError1.xlo + propagatedError2.xlo + propagatedError3.xlo,
-          propagatedError1.xhi + propagatedError2.xhi + propagatedError3.xhi
+        val abstractRangeLhsxlo = abstractRangeLhs.xlo
+        val abstractRangeLhsxhi = abstractRangeLhs.xhi
+        val errorRhsxlo = errorRhs.xlo
+        val errorRhsxhi = errorRhs.xhi
+        val abstractRangeRhsxlo = abstractRangeRhs.xlo
+        val abstractRangeRhsxhi = abstractRangeRhs.xhi
+        val errorLhsxlo = errorLhs.xlo
+        val errorLhsxhi = errorLhs.xhi
+        val propagatedErrorxlo: Float = multFunc._Z14wholemultlowerffffffff(
+          abstractRangeLhsxlo.toFloat,
+          abstractRangeLhsxhi.toFloat,
+          abstractRangeRhsxlo.toFloat,
+          abstractRangeRhsxhi.toFloat,
+          errorRhsxlo.toFloat,
+          errorRhsxhi.toFloat,
+          errorLhsxlo.toFloat,
+          errorLhsxhi.toFloat
         )
+        val propagatedErrorxhi: Float = multFunc._Z14wholemultupperv()
+        val propagatedError = Interval(propagatedErrorxlo, propagatedErrorxhi)
+        
         val endTime44 = System.nanoTime()
-        propagatedError4time += (endTime44 - starttime47) / 1000000.0
+        //propagatedError4time += (endTime44 - starttime47) / 1000000.0
         multiplytime += (endTime44 - starttime44) / 1000000.0
 
         val startTime5 = System.nanoTime()
@@ -726,6 +727,17 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val endTime = System.nanoTime()
         cosTime += (endTime - startTime) / 1000000.0
         res
+      
+      case x @ (Cast(t, FinitePrecisionType(prec)), path) =>
+        val (errorT, precT) = eval(t, path)
+
+        if (prec > precT) {
+          // upcast does not lead to roundoff error
+          (errorT, prec)
+        } else {
+          // add new roundoff error corresponding to the cast precision
+          computeNewError(range(x), errorT, prec)
+        }
 
       case x @ (Let(id, value, body), path) =>
         val (valueError, valuePrec) = eval(value, path)
