@@ -557,11 +557,8 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val (errorLhs, precLhs) = eval(lhs, path)
         val (errorRhs, precRhs) = eval(rhs, path)
 
-        val startTime = System.nanoTime()
         val propagatedError = errorLhs + errorRhs
         val res = computeNewError(range(x), propagatedError, getUpperBound(precLhs, precRhs)  /* Scala semantics */)
-        val endTime = System.nanoTime()
-        plusTime += (endTime - startTime) / 1000000.0
         res
 
 
@@ -569,18 +566,13 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val (errorLhs, precLhs) = eval(lhs, path)
         val (errorRhs, precRhs) = eval(rhs, path)
 
-        val startTime = System.nanoTime()
         val propagatedError = errorLhs - errorRhs
         val precision = getUpperBound(precLhs, precRhs)
 
         if (precision.isInstanceOf[FloatPrecision] && sterbenzTheoremApplies(range(lhs, path), range(rhs, path))) {
-          val endTime = System.nanoTime()
-          minusTime += (endTime - startTime) / 1000000.0
           (propagatedError, precision)
         } else {
           val res = computeNewError(range(x), propagatedError, precision)
-          val endTime = System.nanoTime()
-          minusTime += (endTime - startTime) / 1000000.0
           res
         }
 
@@ -588,24 +580,13 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val (errorLhs, precLhs) = eval(lhs, path)
         val (errorRhs, precRhs) = eval(rhs, path)
 
-        val startTime = System.nanoTime()
         val rangeLhs = range(lhs, path)
-        val endtime1 = System.nanoTime()
-        rangeLhsTime += (endtime1 - startTime) / 1000000.0
-        val startTime2 = System.nanoTime()
         val rangeRhs = range(rhs, path)
-        val endtime2 = System.nanoTime()
-        rangeRhsTime += (endtime2 - startTime2) / 1000000.0
-        val startTime3 = System.nanoTime()
         val abstractRangeLhs = interval2T(rangeLhs)
-        val endtime3 = System.nanoTime()
-        abstractRangeLhsTime += (endtime3 - startTime3) / 1000000.0
-        val startTime4 = System.nanoTime()
-        val abstractRangeRhs = interval2T(rangeRhs)
-        val endtime4 = System.nanoTime()
-        abstractRangeRhsTime += (endtime4 - startTime4) / 1000000.0
 
-        val starttime44 = System.nanoTime()
+        val abstractRangeRhs = interval2T(rangeRhs)
+
+
         val abstractRangeLhsxlo = abstractRangeLhs.xlo
         val abstractRangeLhsxhi = abstractRangeLhs.xhi
         val errorRhsxlo = errorRhs.xlo
@@ -626,31 +607,17 @@ trait RoundoffEvaluators extends RangeEvaluators {
         )
         val propagatedErrorxhi: Float = multFunc._Z14wholemultupperv()
         val propagatedError = Interval(propagatedErrorxlo, propagatedErrorxhi)
-        
-        val endTime44 = System.nanoTime()
-        //propagatedError4time += (endTime44 - starttime47) / 1000000.0
-        multiplytime += (endTime44 - starttime44) / 1000000.0
 
-        val startTime5 = System.nanoTime()
         val precision = getUpperBound(precLhs, precRhs)
-        val endtime5 = System.nanoTime()
-        precisionTime += (endtime5 - startTime5) / 1000000.0
         // No roundoff error if one of the operands is a non-negative power of 2
-        val starttime55 = System.nanoTime()
         if ((rangeLhs.isNonNegative && rangeLhs.isPowerOf2)
           || (rangeRhs.isNonNegative && rangeRhs.isPowerOf2)) {
-          val endTime = System.nanoTime()
-          checkiftime += (endTime - starttime55) / 1000000.0
-          timesTime += (endTime - startTime) / 1000000.0
           (propagatedError, precision)
         } else {
-          val endTime66 = System.nanoTime()
-          checkiftime += (endTime66 - starttime55) / 1000000.0
-          val startTime6 = System.nanoTime()
+
           val res = computeNewError(range(x), propagatedError, precision)
-          val endTime = System.nanoTime()
-          computenewerrortime += (endTime - startTime6) / 1000000.0
-          timesTime += (endTime - startTime) / 1000000.0
+
+
           res
         }
 
@@ -658,7 +625,6 @@ trait RoundoffEvaluators extends RangeEvaluators {
         val (errorLhs, precLhs) = eval(lhs, path)
         val (errorRhs, precRhs) = eval(rhs, path)
 
-        val startTime = System.nanoTime()
         val rangeLhs = range(lhs, path)
         val rangeRhs = range(rhs, path)
 
@@ -682,8 +648,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
           errorLhs * invErr
 
         val res = computeNewError(range(x), propagatedError, getUpperBound(precLhs, precRhs))
-        val endTime = System.nanoTime()
-        divTime += (endTime - startTime) / 1000000.0
+
         res
 
       case x @ (UMinus(t), path) =>
@@ -694,7 +659,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
-        val startTime = System.nanoTime()
+
 
         // Bound the slope of sin(x) over the range by computing its
         // derivative (i.e. cos(x)) as an interval and then taking the bound
@@ -705,8 +670,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
         // TODO: check that this operation exists for this precision
         val res = computeNewErrorTranscendental(range(x), propagatedError, prec)
-        val endTime = System.nanoTime()
-        sinTime += (endTime - startTime) / 1000000.0
+
         res
         
 
@@ -714,7 +678,6 @@ trait RoundoffEvaluators extends RangeEvaluators {
         // TODO not supported for fixed-points
         val (errorT, prec) = eval(t, path)
 
-        val startTime = System.nanoTime()
         // Bound the slope of cos(x) over the range by computing its
         // derivative (i.e. -sin(x)) as an interval and then taking the bound
         // with the larger absolute value.
@@ -724,8 +687,6 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
         // TODO: check that this operation exists for this precision
         val res = computeNewErrorTranscendental(range(x), propagatedError, prec)
-        val endTime = System.nanoTime()
-        cosTime += (endTime - startTime) / 1000000.0
         res
       
       case x @ (Cast(t, FinitePrecisionType(prec)), path) =>
@@ -742,7 +703,6 @@ trait RoundoffEvaluators extends RangeEvaluators {
       case x @ (Let(id, value, body), path) =>
         val (valueError, valuePrec) = eval(value, path)
 
-        val startTime = System.nanoTime()
         val idPrec = precision(id)
         val error = if (idPrec < valuePrec) { // we need to cast down
           val valueRange = range(value, path)
@@ -752,8 +712,6 @@ trait RoundoffEvaluators extends RangeEvaluators {
         }
 
         intermediateErrors.put((Variable(id), path), (error, valuePrec)) // no problem as identifiers are unique
-        val endTime = System.nanoTime()
-        letTime += (endTime - startTime) / 1000000.0
         eval(body, path)
 
       case (Variable(id), path) =>
@@ -769,30 +727,6 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
     val (resError, _) = eval(expr, emptyPath)
 
-    println(s"Plus time: $plusTime")
-    println(s"Minus time: $minusTime")
-    println(s"Times time: $timesTime")
-    println(s"Div time: $divTime")
-    println(s"Sin time: $sinTime")
-    println(s"Cos time: $cosTime")
-    println(s"Uminus time: $uminusTime")
-    println(s"Let time: $letTime")
-
-    println(s"Range Lhs time: $rangeLhsTime")
-    println(s"Range Rhs time: $rangeRhsTime")
-    println(s"Abstract Range Lhs time: $abstractRangeLhsTime")
-    println(s"Abstract Range Rhs time: $abstractRangeRhsTime")
-    println(s"Precision time: $precisionTime")
-    println(s"Compute new error time: $computenewerrortime")
-    println(s"Check if time: $checkiftime")
-    println(s"Multiply time: $multiplytime")
-
-    println(s"Propagated Error 1 time: $propagatedError1time")
-    println(s"Propagated Error 2 time: $propagatedError2time")
-    println(s"Propagated Error 3 time: $propagatedError3time")
-    println(s"Propagated Error 4 time: $propagatedError4time")
-    println(s"Propagated Error 5 time: $propagatedError5time")
-    
     (resError, intermediateErrors.mapValues(_._1).toMap)
   }
 
