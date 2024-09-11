@@ -27,7 +27,8 @@ trait RangeEvaluators {
     expr: Expr,
     initValMap: Map[Identifier, T],
     rangeFromInterval: Interval => T,
-    precompIntermRanges: CachingMap[(Expr, PathCond), T] = CachingMap.empty[(Expr, PathCond), T]()): (T, Map[(Expr, PathCond), T]) = {
+    precompIntermRanges: CachingMap[(Expr, PathCond), T] = CachingMap.empty[(Expr, PathCond), T]()): 
+      (T, Map[(Expr, PathCond), T]) = {
 
     val intermediateRanges: CachingMap[(Expr, PathCond), T] = if (precompIntermRanges.isEmpty) new CachingMap[(Expr, PathCond), T] else precompIntermRanges
 

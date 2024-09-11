@@ -44,7 +44,7 @@ object RangePhase extends DaisyPhase with tools.RangeEvaluators {
 
       val inputValMap: Map[Identifier, Interval] = ctx.specInputRanges(fnc.id)
 
-      val ranges = rangeMethod match {
+      val ranges: (Interval, Map[(Expr, PathCond), Interval]) = rangeMethod match {
         case "interval" =>
           val (resRange, intermediateRanges) =
             evalRange[Interval](fnc.body.get, inputValMap, Interval.apply)

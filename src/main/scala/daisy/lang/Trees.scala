@@ -45,7 +45,7 @@ object Trees {
     id: Identifier,
     returnType: TypeTree,
     params: Seq[ValDef],
-    precondition: Option[Expr],
+    var precondition: Option[Expr],
     body: Option[Expr],
     postcondition: Option[Expr],
     isField: Boolean = false) extends Definition

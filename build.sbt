@@ -6,6 +6,7 @@ organization := "org.mpi-sws.ava"
 
 scalaVersion := "2.13.3"
 
+
 scalacOptions ++= Seq(
     "-deprecation",
     "-unchecked",
@@ -26,6 +27,8 @@ libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
     "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0"
 )
+
+libraryDependencies += "net.java.dev.jna" % "jna" % "4.0.0"
 
 envVars := Map("LC_NUMERIC" -> "en_US.UTF-8")
 

@@ -239,8 +239,6 @@ object DataflowSpecPhase extends DaisyPhase with RoundoffEvaluators with Interva
           ((Variable(id), emptyPath) -> currRanges((Variable(id), emptyPath))))
 
       case Let(id, x @ ElemFnc(t @ Variable(tId), recons), body) =>
-        println("ElemFnccorrect")
-        println(id)
         val idPrec = typeConfig (id)
 
         val (valueExpr, valueMap) = recurse(t, path)

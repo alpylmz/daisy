@@ -586,7 +586,7 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
         val abstractRangeRhs = interval2T(rangeRhs)
 
-
+        // NEW METHOD
         val abstractRangeLhsxlo = abstractRangeLhs.xlo
         val abstractRangeLhsxhi = abstractRangeLhs.xhi
         val errorRhsxlo = errorRhs.xlo
@@ -607,6 +607,12 @@ trait RoundoffEvaluators extends RangeEvaluators {
         )
         val propagatedErrorxhi: Float = multFunc._Z14wholemultupperv()
         val propagatedError = Interval(propagatedErrorxlo, propagatedErrorxhi)
+
+        // OLD METHOD:
+        //val propagatedError =
+        //  abstractRangeLhs * errorRhs +
+        //  abstractRangeRhs * errorLhs +
+        //  errorLhs * errorRhs
 
         val precision = getUpperBound(precLhs, precRhs)
         // No roundoff error if one of the operands is a non-negative power of 2
