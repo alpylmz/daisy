@@ -48,21 +48,7 @@ object Interval {
   } // TODO rounding outwards correct? (should it be inwards?)
 }
 
-class IntervalClass(xllo: Double = 0.0, xhhi: Double = 0.0) extends Structure {
-  var xlo: Double = xllo
-  var xhi: Double = xhhi
-  def this() = this(0.0, 0.0)
-  def this(xlo: Float, xhi: Float) = this(xlo.toDouble, xhi.toDouble)
-
-  // Nested classes for passing by reference and value
-  class ByReference extends IntervalClass with Structure.ByReference
-  class ByValue extends IntervalClass with Structure.ByValue
-}
-
-
-
 trait foo extends Library {
-  def _Z10ifelsefuncffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float): IntervalClass
   def _Z15ifelsefunclowerffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float): Float
   def _Z15ifelsefuncupperffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float): Float
 }
@@ -114,6 +100,7 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
   }
   
   
+  
   /*
   def *(y: Interval): Interval = y match {
     case Interval(ylo, yhi) =>
@@ -149,6 +136,7 @@ case class Interval(xlo: Rational, xhi: Rational) extends RangeArithmetic[Interv
       }
   }
   */
+  
   
   
 
