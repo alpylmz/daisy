@@ -17,6 +17,12 @@ import tools._
 import daisy.ProgramLanguage._
 import java.net.IDN
 
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
+import java.util.concurrent.Semaphore
+
 /**
  * This phase optimizes and determines a suitable mixed-precision type assignment.
  *
@@ -37,8 +43,10 @@ import java.net.IDN
 object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   with search.GeneticSearch[Map[Identifier, Precision]] with tools.RoundoffEvaluators {
 
-  val minimumIntervalSize = 0.1
+  val minimumIntervalSize = 0.05
   val epsilonRes = 0.1
+  val maxThreads = 8
+  val semaphore = new Semaphore(maxThreads)
 
   /* 
    * Copied from daisy/src/main/scala/daisy/Main.scala, and stripped down to the essentials.
@@ -366,7 +374,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
           // Step 1: find the smallest available precision which satisfies the error bound
           // TODO: search from the end, the first one which does not satisfy the spec
-          //reporter.info("First search for some reason")
+          reporter.info("First search for some reason")
           availablePrecisions.find( prec => {
             try {
               // path may contain unused variables, which is why use the allIDsOf here
@@ -378,7 +386,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
               case _ : Throwable => false
             }
           })
-          //reporter.info("Second search for some reason")
+          reporter.info("Second search for some reason")
           // search from the end:
           availablePrecisions.reverse.find( prec => {
             try {
@@ -535,11 +543,11 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       // let's first get the usual range, if it is below the target error, we can skip the rest
       val fullRangeError = computeAbsError(expr, typeConfig, constantsPrecision, rangeMap, path, approximate)
       if(fullRangeError <= targetError){
-        //println(fullRangeError + " b") // below
+        println(fullRangeError + " below") // below
         return fullRangeError
       }
       // else, we need to subdivide...
-      //reporter.info("Full range error is above the target error, subdividing...")
+      reporter.info("Full range error is above the target error, subdividing...")
       val ctx_copy = ctx.copy()
       
       // original program seems to be actually the original one, without any modifications
@@ -559,8 +567,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         precond = precondition_update
       }
 
-      //reporter.info("Precondition:")
-      //reporter.info(precond)
+      reporter.info("Precondition:")
+      reporter.info(precond)
       
 
       val preconditions_list: Seq[Expr] = precond match {
@@ -684,20 +692,20 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         }
         i = i + 2
       }
-      //reporter.info("less_than_min_count:")
-      //reporter.info(less_than_min_count)
-      //reporter.info("preconditions_list.length:")
-      //reporter.info(preconditions_list.length)
+      reporter.info("less_than_min_count:")
+      reporter.info(less_than_min_count)
+      reporter.info("preconditions_list.length:")
+      reporter.info(preconditions_list.length)
       if(less_than_min_count * 2 == preconditions_list.length){
         // if all the intervals are too small, then we can't do anything
         // we can't subdivide them
         // so, we will return the full range error
-        //println(fullRangeError + " s") // small
+        println(fullRangeError + " small") // small
         return fullRangeError
       }
       // now I have the preconditions, I will try to print them
-      //reporter.info("New preconditions:")
-      //reporter.info(preconditions)
+      reporter.info("New preconditions:")
+      reporter.info(preconditions)
       /* 
       List(
 	      List(((qpos5 > 0.2) ? (qpos5 < 0.25)), ((qpos5 > 0.25) ? (qpos5 < 0.3))), 
@@ -714,73 +722,85 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         )
        */
       inputValMaps = takeCombinations(preconditions)
-      
-
-      //reporter.info("InputValMaps:")
-      //reporter.info(inputValMaps)
 
       var resErrors = List[Rational]()
 
-      inputValMaps.foreach(inputValMap => {
-
-        //reporter.info("InputValMap:")
-        //reporter.info(inputValMap)
-
-        //reporter.info("fnc.body.get")
-        //reporter.info(fnc.body.get)
-        
-        val (resRange, _intermediateRanges) = evalRange[AffineForm](fnc.body.get,
-            inputValMap.map(x => (x._1 -> AffineForm(x._2))), AffineForm.apply)
+      // OLD METHOD
+      ////////////////////inputValMaps.foreach(inputValMap => { 
+      ////////////////////  val (resRange, _intermediateRanges) = evalRange[Interval](fnc.body.get,
+      ////////////////////      inputValMap.map(x => (x._1 -> Interval(x._2))), Interval.apply)
+      ////////////////////
+      ////////////////////  val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
+      ////////////////////  val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({
+      ////////////////////    fnc.id -> _ranges
+      ////////////////////  })
+      ////////////////////
+      ////////////////////  val intermediateRanges = res.mapValues(_._2).toMap
+      ////////////////////  val _rangeMap = intermediateRanges(fnc.id)
+      ////////////////////  val emptyPath = Seq()
+      ////////////////////  val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
+      ////////////////////  paths.map({
+      ////////////////////    case (pathCond, _body, rangeMapnew) =>
+      ////////////////////      val temp_precond = inputValMaptoPrecondition(inputValMap)
+      ////////////////////      val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError, temp_precond)
+      ////////////////////      resErrors = resErrors :+ temp_res2  
+      ////////////////////  })
+      ////////////////////})
+      //NEW METHOD
+      println("current result is " + fullRangeError)
+      println("with the preconditions:")
+      println(preconditions)
+      val futureResults: Seq[Future[Unit]] = inputValMaps.map (inputValMap => {
+        Future{
+          semaphore.acquire()
+          try{
+            val (resRange, _intermediateRanges) = evalRange[Interval](fnc.body.get,
+              inputValMap.map(x => (x._1 -> Interval(x._2))), Interval.apply)
       
-        //reporter.info("ResRange:")
-        //reporter.info(resRange)
+            val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
+            val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({fnc.id -> _ranges})
 
-        val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
-
-        //reporter.info("Ranges:")
-        //reporter.info(_ranges)
-
-        val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({
-          fnc.id -> _ranges
-        })
-        
-        val intermediateRanges = res.mapValues(_._2).toMap
-
-        //reporter.info("IntermediateRanges:")
-        //reporter.info(intermediateRanges)
-
-        val _rangeMap = intermediateRanges(fnc.id)
-
-        val emptyPath = Seq()
-
-        val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
-
-        //reporter.info("old precondition:")
-        //reporter.info(prg.defs.filter(_.body.isDefined).find(_.id == fnc.id).get.precondition)
-        //// update preconditions of the function
-        //prg.defs.filter(_.body.isDefined).find(_.id == fnc.id).get.precondition = Some(And(preconditions_list))
-        //reporter.info("new precondition:")
-        //reporter.info(prg.defs.filter(_.body.isDefined).find(_.id == fnc.id).get.precondition)
-        // no idea how this works
-        paths.map({
-          case (pathCond, _body, rangeMapnew) =>
-            //reporter.info("inputValMap:")
-            //reporter.info(inputValMap)
-            val temp_precond = inputValMaptoPrecondition(inputValMap)
-            val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError, temp_precond)
-            resErrors = resErrors :+ temp_res2  
-        })
+            val intermediateRanges = res.mapValues(_._2).toMap
+            val _rangeMap = intermediateRanges(fnc.id)
+      
+            val emptyPath = Seq()
+            val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
+      
+            paths.map({
+              case (pathCond, _body, rangeMapnew) =>
+                val temp_precond = inputValMaptoPrecondition(inputValMap)
+                val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError, temp_precond)
+                if (temp_res2 > fullRangeError){
+                  println("temp_res2 is " + temp_res2)
+                  println("temp_precond is " + temp_precond)
+                }
+                resErrors = resErrors :+ temp_res2  
+            })
+          } finally {
+            semaphore.release()
+          }
+        }
       })
+      val aggregatedResultsFuture = Future.sequence(futureResults)
+      
+      // Handle completion of all threads (optional)
+      aggregatedResultsFuture.onComplete {
+        case Success(_) =>
+          reporter.info("All computations completed successfully.")
+        case Failure(exception) =>
+          reporter.info(s"An error occurred: ${exception.getMessage}")
+      }
+      
+      // Optionally block until all threads complete (if necessary)
+      Await.result(aggregatedResultsFuture, Duration.Inf)
 
-      //reporter.info("fullrangeerror:")
-      //reporter.info(fullRangeError)
-      //reporter.info("ResErrors.max:")
-      //reporter.info(resErrors.max)
       if(resErrors.max < fullRangeError){
         println(resErrors.max + " " + fullRangeError + " I")
       }
       else{
         println("NI: " + resErrors + " " + fullRangeError)
+        print("inputValMaps: ")
+        println(inputValMaps)
       }
 
 
@@ -789,6 +809,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
     }
   
+  // This function is only used in DataflowPhase.scala
+  // It is not to be used in MixedPrecisionOptimizationPhase.scala
   def computeAbsErrorInDiffIntervalsReturnTuple(ctx: Context, prg: Program, expr: Expr, typeConfig: Map[Identifier, Precision],
     constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
     path: PathCond, approximate: Boolean = false, targetError: Rational, precondition_update: Option[Expr] = None): 
@@ -1089,6 +1111,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         (id -> typeConfig(id).absRoundoff(rangeMap((Variable(id), emptyPath))))
     }).toMap
 
+    /*
     // run regular roundoff error analysis
     val (resRoundoff, _) = evalRoundoff[AffineForm](finitePrecBody, rangeMap ++ newRangeMap,
       typeConfig,
@@ -1099,6 +1122,34 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       constantsPrecision = constantsPrecision,
       trackRoundoffErrors = true,
       approxRoundoff = approximate)
+    */
+
+    // run regular roundoff error analysis
+
+    //val (resRoundoff, _) = evalRoundoff[Interval](finitePrecBody, rangeMap ++ newRangeMap,
+    //  typeConfig,
+    //  inputErrorMap.mapValues(Interval.+/-).toMap,
+    //  zeroError = Interval.zero,
+    //  fromError = Interval.+/-,
+    //  interval2T = Interval.apply,
+    //  constantsPrecision = constantsPrecision,
+    //  trackRoundoffErrors = true,
+    //  approxRoundoff = approximate)
+    //
+    //println("returning from computeabserror")
+
+    val (resRoundoff, _) = evalRoundoffInterval(finitePrecBody, rangeMap ++ newRangeMap,
+    typeConfig,
+      inputErrorMap.mapValues(Interval.+/-).toMap,
+      zeroError = Interval.zero,
+      fromError = Interval.+/-,
+      interval2T = Interval.apply,
+      constantsPrecision = constantsPrecision,
+      trackRoundoffErrors = true,
+      approxRoundoff = approximate)
+    
+    println("returning from computeabserror")
+    
 
     Interval.maxAbs(resRoundoff.toInterval)
   }
@@ -1338,7 +1389,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
         // 2: evaluate current config
         //reporter.info("first errorfnc")
-        //reporter.info("one run")
+        reporter.info("zeroth run")
         val currentError = errorFnc(loweredTypeConfig, highestPrecision)
         //reporter.info("first errorfnc finished")
 
