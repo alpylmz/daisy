@@ -43,9 +43,9 @@ import java.util.concurrent.Semaphore
 object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   with search.GeneticSearch[Map[Identifier, Precision]] with tools.RoundoffEvaluators {
 
-  val minimumIntervalSize = 0.05
+  val minimumIntervalSize = 0.1
   val epsilonRes = 0.1
-  val maxThreads = 8
+  val maxThreads = 64
   val semaphore = new Semaphore(maxThreads)
 
   /* 
@@ -447,8 +447,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
                   val (tpeconfig, prec) = (deltaDebuggingSearch(ctx, body, targetError, fnc.params, costFnc,
                     //asd
-                    computeAbsErrorInDiffIntervals(ctx, prg, body, _, _, rangeMap, pathCond, approximate = true, targetError),
-                    //computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
+                    //computeAbsErrorInDiffIntervals(ctx, prg, body, _, _, rangeMap, pathCond, approximate = true, targetError),
+                    computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                     lowestUniformPrec)
 
@@ -547,7 +547,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         return fullRangeError
       }
       // else, we need to subdivide...
-      reporter.info("Full range error is above the target error, subdividing...")
+      //reporter.info("Full range error is above the target error, subdividing...")
       val ctx_copy = ctx.copy()
       
       // original program seems to be actually the original one, without any modifications
@@ -567,8 +567,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
         precond = precondition_update
       }
 
-      reporter.info("Precondition:")
-      reporter.info(precond)
+      //reporter.info("Precondition:")
+      //reporter.info(precond)
       
 
       val preconditions_list: Seq[Expr] = precond match {
@@ -644,135 +644,79 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
               LessThan(var_id, RealLiteral(upper_bound_value)),
             ),
           )
-          
-          /*
-          preconditions = preconditions :+ List(
-            And(
-              GreaterThan(var_id, RealLiteral(lower_bound_value)),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.1 + lower_bound_value*0.9))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.1 + lower_bound_value*0.9))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.2 + lower_bound_value*0.8))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.2 + lower_bound_value*0.8))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.3 + lower_bound_value*0.7))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.3 + lower_bound_value*0.7))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.4 + lower_bound_value*0.6))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.4 + lower_bound_value*0.6))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.5 + lower_bound_value*0.5))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.5 + lower_bound_value*0.5))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.6 + lower_bound_value*0.4))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.6 + lower_bound_value*0.4))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.7 + lower_bound_value*0.3))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.7 + lower_bound_value*0.3))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.8 + lower_bound_value*0.2))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.8 + lower_bound_value*0.2))),
-              LessThan(var_id, RealLiteral((upper_bound_value*0.9 + lower_bound_value*0.1))),
-            ),
-            And(
-              GreaterThan(var_id, RealLiteral((upper_bound_value*0.9 + lower_bound_value*0.1))),
-              LessThan(var_id, RealLiteral(upper_bound_value)),
-            ),
-          )
-          */
         }
         i = i + 2
       }
-      reporter.info("less_than_min_count:")
-      reporter.info(less_than_min_count)
-      reporter.info("preconditions_list.length:")
-      reporter.info(preconditions_list.length)
+      //reporter.info("less_than_min_count:")
+      //reporter.info(less_than_min_count)
+      //reporter.info("preconditions_list.length:")
+      //reporter.info(preconditions_list.length)
       if(less_than_min_count * 2 == preconditions_list.length){
         // if all the intervals are too small, then we can't do anything
         // we can't subdivide them
         // so, we will return the full range error
-        println(fullRangeError + " small") // small
+        // println(fullRangeError + " small " + precondition_update)
         return fullRangeError
       }
-      // now I have the preconditions, I will try to print them
-      reporter.info("New preconditions:")
-      reporter.info(preconditions)
-      /* 
-      List(
-	      List(((qpos5 > 0.2) ? (qpos5 < 0.25)), ((qpos5 > 0.25) ? (qpos5 < 0.3))), 
-	      List(((qpos6 > 0.2) ? (qpos6 < 0.4)), ((qpos6 > 0.4) ? (qpos6 < 0.6)))
-      )
-      */
-      /* 
-        We need the structure:
-        List(
-          Map(qpos5 -> [0.2, 0.25], qpos6 -> [0.2, 0.4]), 
-          Map(qpos5 -> [0.2, 0.25], qpos6 -> [0.4, 0.6]), 
-          Map(qpos5 -> [0.25, 0.3], qpos6 -> [0.2, 0.4]), 
-          Map(qpos5 -> [0.25, 0.3], qpos6 -> [0.4, 0.6])
-        )
-       */
+      
       inputValMaps = takeCombinations(preconditions)
 
       var resErrors = List[Rational]()
 
       // OLD METHOD
-      ////////////////////inputValMaps.foreach(inputValMap => { 
-      ////////////////////  val (resRange, _intermediateRanges) = evalRange[Interval](fnc.body.get,
-      ////////////////////      inputValMap.map(x => (x._1 -> Interval(x._2))), Interval.apply)
-      ////////////////////
-      ////////////////////  val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
-      ////////////////////  val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({
-      ////////////////////    fnc.id -> _ranges
-      ////////////////////  })
-      ////////////////////
-      ////////////////////  val intermediateRanges = res.mapValues(_._2).toMap
-      ////////////////////  val _rangeMap = intermediateRanges(fnc.id)
-      ////////////////////  val emptyPath = Seq()
-      ////////////////////  val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
-      ////////////////////  paths.map({
-      ////////////////////    case (pathCond, _body, rangeMapnew) =>
-      ////////////////////      val temp_precond = inputValMaptoPrecondition(inputValMap)
-      ////////////////////      val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError, temp_precond)
-      ////////////////////      resErrors = resErrors :+ temp_res2  
-      ////////////////////  })
-      ////////////////////})
+      /////////////////////////////////////inputValMaps.foreach(inputValMap => { 
+      /////////////////////////////////////  val (resRange, _intermediateRanges) = evalRange[Interval](fnc.body.get,
+      /////////////////////////////////////      inputValMap.map(x => (x._1 -> Interval(x._2))), Interval.apply)
+      /////////////////////////////////////
+      /////////////////////////////////////  val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
+      /////////////////////////////////////  val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({
+      /////////////////////////////////////    fnc.id -> _ranges
+      /////////////////////////////////////  })
+      /////////////////////////////////////
+      /////////////////////////////////////  val intermediateRanges = res.mapValues(_._2).toMap
+      /////////////////////////////////////  val _rangeMap = intermediateRanges(fnc.id)
+      /////////////////////////////////////  val emptyPath = Seq()
+      /////////////////////////////////////  val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
+      /////////////////////////////////////  paths.map({
+      /////////////////////////////////////    case (pathCond, _body, rangeMapnew) =>
+      /////////////////////////////////////      val temp_precond = inputValMaptoPrecondition(inputValMap)
+      /////////////////////////////////////      val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError, temp_precond)
+      /////////////////////////////////////      resErrors = resErrors :+ temp_res2  
+      /////////////////////////////////////  })
+      /////////////////////////////////////})
       //NEW METHOD
-      println("current result is " + fullRangeError)
-      println("with the preconditions:")
-      println(preconditions)
       val futureResults: Seq[Future[Unit]] = inputValMaps.map (inputValMap => {
         Future{
           semaphore.acquire()
           try{
-            val (resRange, _intermediateRanges) = evalRange[Interval](fnc.body.get,
-              inputValMap.map(x => (x._1 -> Interval(x._2))), Interval.apply)
+            //val (resRange, _intermediateRanges) = evalRange[Interval](fnc.body.get,
+            //  inputValMap.map(x => (x._1 -> Interval(x._2))), Interval.apply)
+          
+            // This line is from RangePhase line 49-50
+            val (resRange, intermediateRanges) =
+              evalRange[Interval](fnc.body.get, inputValMap, Interval.apply)
       
-            val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
-            val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({fnc.id -> _ranges})
-
-            val intermediateRanges = res.mapValues(_._2).toMap
-            val _rangeMap = intermediateRanges(fnc.id)
+            //val _ranges: (Interval, Map[(Expr, PathCond), Interval]) = (resRange.toInterval, _intermediateRanges.mapValues(_.toInterval).toMap)
+            //val res: Map[Identifier, (Interval, Map[(Expr, PathCond), Interval])] = Map({fnc.id -> _ranges})
+      
+            //val intermediateRanges = res.mapValues(_._2).toMap
+            //val _rangeMap = intermediateRanges(fnc.id)
       
             val emptyPath = Seq()
-            val paths = extractPaths(fnc.body.get, emptyPath, _rangeMap)
-      
+            val paths = extractPaths(fnc.body.get, emptyPath, intermediateRanges)
+
+            // SOMETHING IS DIFFERENT HERE!
             paths.map({
               case (pathCond, _body, rangeMapnew) =>
                 val temp_precond = inputValMaptoPrecondition(inputValMap)
-                val temp_res2 = computeAbsErrorInDiffIntervals(ctx_copy, prg, expr, typeConfig, constantsPrecision, rangeMapnew, path, approximate, targetError, temp_precond)
+                val temp_res2 = computeAbsErrorInDiffIntervals(
+                  ctx_copy, prg, expr, 
+                  typeConfig, constantsPrecision, 
+                  intermediateRanges, pathCond, approximate,
+                  targetError, temp_precond)
                 if (temp_res2 > fullRangeError){
-                  println("temp_res2 is " + temp_res2)
-                  println("temp_precond is " + temp_precond)
+                  println("WARNING: " + temp_res2 + " " + fullRangeError)
+                  println("WARNING: " + inputValMap)
                 }
                 resErrors = resErrors :+ temp_res2  
             })
@@ -781,8 +725,10 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
           }
         }
       })
+      println("started all threads")
       val aggregatedResultsFuture = Future.sequence(futureResults)
       
+      println("waiting for all threads")
       // Handle completion of all threads (optional)
       aggregatedResultsFuture.onComplete {
         case Success(_) =>
@@ -793,14 +739,13 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
       
       // Optionally block until all threads complete (if necessary)
       Await.result(aggregatedResultsFuture, Duration.Inf)
+      println("all threads completed")
 
       if(resErrors.max < fullRangeError){
-        println(resErrors.max + " " + fullRangeError + " I")
+        println(resErrors.max + " " + fullRangeError + " Improvement")
       }
       else{
         println("NI: " + resErrors + " " + fullRangeError)
-        print("inputValMaps: ")
-        println(inputValMaps)
       }
 
 
@@ -1138,6 +1083,105 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
     //
     //println("returning from computeabserror")
 
+    val (resRoundoff, _) = evalRoundoffInterval(finitePrecBody, rangeMap ++ newRangeMap,
+    typeConfig,
+      inputErrorMap.mapValues(Interval.+/-).toMap,
+      zeroError = Interval.zero,
+      fromError = Interval.+/-,
+      interval2T = Interval.apply,
+      constantsPrecision = constantsPrecision,
+      trackRoundoffErrors = true,
+      approxRoundoff = approximate)
+    
+    println("returning from computeabserror")
+    
+
+    Interval.maxAbs(resRoundoff.toInterval)
+  }
+
+  def expressionGetFinalLet(expr: Expr): Expr = {
+    expr match {
+      case Let(id, value, body) => expressionGetFinalLet(body)
+      case _ => expr
+    }
+  }
+
+  /*
+    Computes the roundoff error by first introducing casts into the expressions,
+    based on the typeConfig, and then running the standard roundoff error analysis.
+   */
+  def computeAbsErrorVerbose(expr: Expr, typeConfig: Map[Identifier, Precision],
+    constantsPrecision: Precision, rangeMap: Map[(Expr, PathCond), Interval],
+    path: PathCond, approximate: Boolean = false): Rational = {
+
+    // create finite-precision version
+    val (finitePrecBody, newRangeMap) = applyFinitePrecision(expr, typeConfig, rangeMap)
+
+    // roundoff errors depend on the typeConfig, need to be recomputed
+    val inputErrorMap: Map[Identifier, Rational] = freeVariablesOf(expr).map({
+      case id: Identifier =>
+        (id -> typeConfig(id).absRoundoff(rangeMap((Variable(id), emptyPath))))
+    }).toMap
+
+    /*
+    // run regular roundoff error analysis
+    val (resRoundoff, _) = evalRoundoff[AffineForm](finitePrecBody, rangeMap ++ newRangeMap,
+      typeConfig,
+      inputErrorMap.mapValues(AffineForm.+/-).toMap,
+      zeroError = AffineForm.zero,
+      fromError = AffineForm.+/-,
+      interval2T = AffineForm.apply,
+      constantsPrecision = constantsPrecision,
+      trackRoundoffErrors = true,
+      approxRoundoff = approximate)
+    */
+
+    // run regular roundoff error analysis
+
+    //val (resRoundoff, _) = evalRoundoff[Interval](finitePrecBody, rangeMap ++ newRangeMap,
+    //  typeConfig,
+    //  inputErrorMap.mapValues(Interval.+/-).toMap,
+    //  zeroError = Interval.zero,
+    //  fromError = Interval.+/-,
+    //  interval2T = Interval.apply,
+    //  constantsPrecision = constantsPrecision,
+    //  trackRoundoffErrors = true,
+    //  approxRoundoff = approximate)
+    //
+    //println("returning from computeabserror")
+
+    println("calling evalRoundoffInterval with:")
+    println("finitePrecBody:")
+    println(finitePrecBody)
+    println("rangeMap ++ newRangeMap:")
+    val newRangeMap2 = rangeMap ++ newRangeMap
+    newRangeMap2.foreach({ case (expr, range) =>
+      // if the expr is a let expression, print the last expression
+      // case match
+      expr match {
+        case (a, b) =>
+          val filtered_expr = expressionGetFinalLet(a)
+          filtered_expr match{
+            case Plus(_, _) => 
+            case Minus(_, _) => 
+            case Times(_, _) => 
+            case Division(_, _) => 
+            case FloatLiteral(_) => 
+            case _ => println(s"$filtered_expr: $range")
+          }
+        case _ =>
+          //ctx.reporter.info(s"$expr: $range")
+      }
+      //ctx.reporter.info(s"$expr: $range")
+    })
+    println("typeConfig:")
+    println(typeConfig)
+    println("inputErrorMap.mapValues(Interval.+/-).toMap:")
+    println(inputErrorMap.mapValues(Interval.+/-).toMap)
+    println("constantsPrecision:")
+    println(constantsPrecision)
+    print("approximate:")
+    println(approximate)
     val (resRoundoff, _) = evalRoundoffInterval(finitePrecBody, rangeMap ++ newRangeMap,
     typeConfig,
       inputErrorMap.mapValues(Interval.+/-).toMap,
