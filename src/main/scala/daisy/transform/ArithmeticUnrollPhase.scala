@@ -8,7 +8,7 @@ import daisy.lang.Identifiers._
 import daisy.lang.TreeOps
 import daisy.lang.TreeOps.{getLastExpression, isMatrix, isVector, replace}
 import daisy.lang.Trees._
-import daisy.lang.Types.RealType
+import daisy.lang.Types.{FinitePrecisionType, MatrixType, RealType, VectorType}
 import daisy.tools.FinitePrecision.Precision
 import daisy.tools.{DSAbstraction, Interval, Rational}
 
@@ -29,6 +29,36 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   override val description = "Unrolls all loops over data structures."
   override implicit val debugSection = DebugSectionTransform
 
+
+
+  def getInputDSSize(ctx: Context, fnc: FunDef, x: ValDef): Int = {
+    // This function gets the size of x in the spec
+    //val dsSize = ctx.dsAbstractions(fnc.id)(x).dsSize
+    // iterate over dsAbstractions(fnc.id) to match expressions with x valdef
+    var size = 0
+    val () = println("x: " + x)
+    for((k, v) <- ctx.dsAbstractions(fnc.id)){
+        val () = println("k: " + k)
+        val () = k match{
+            case RealLiteral(r) => {
+                val () = println("ERROR: Not a ValDef, but a RealLiteral")
+            }
+            case FinitePrecisionLiteral(r, prec, _) => {
+                val () = println("ERROR: Not a ValDef, but a FinitePrecisionLiteral")
+            }
+            case Variable(id) => {
+                if(id == x.id){
+                    size = v.dsSize
+                }
+            }
+            case _ => {
+                val () = println("ERROR: Not a ValDef")
+            }
+        }
+    }
+    size
+  }
+
   override def runPhase(ctx: Context, prg: Program): (Context, Program) = {
     val uniformPrecision = ctx.option[Precision]("precision")
     // need to replace function bodies, create a copy of the whole program
@@ -37,12 +67,66 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     var specInputErrors: Map[Identifier, Map[Identifier, Rational]] = ctx.specInputErrors
 
     val newDefs = fncsToConsider.map(fnc => {
+      val () = println("fnc: " + fnc)
+      val () = println("fnc.params: " + fnc.params)
+      // fnc params is just a list
+      // iterate over it
+      // if the element is a real, leave it alone
+      // if the element is a vector, unroll it
+      // if the element is a matrix, unroll it
+      var unrolledParamsFlattened: List[ValDef] = List() // Terrible Solution
+      val unrolledParams = fnc.params.map(vd => vd.getType match {
+        case RealType => {
+          unrolledParamsFlattened = unrolledParamsFlattened :+ vd
+          vd
+        }
+        case VectorType(_) =>
+          //val vSize = ctx.dsAbstractions(fnc.id)(vd.id).dsSize
+          //val () = println("vSize: " + vSize)
+          val () = println("ctx.dsAbstractions(fnc.id): " + ctx.dsAbstractions(fnc.id))
+          val () = println("sizeofvd: " + getInputDSSize(ctx, fnc, vd))
+          val vdSize = getInputDSSize(ctx, fnc, vd)
+          //val () = println("ctx.dsAbstractions(fnc.id)(vd.id): " + ctx.dsAbstractions(fnc.id)(vd))
+          val () = println("specInputRanges: " + specInputRanges)
+          val () = println("specInputRanges(fnc.id): " + specInputRanges(fnc.id))
+            val zero = 0
+            var currList = List(FreshIdentifier(s"${vd.id}$zero", RealType))
+            for(j <- 1 to vdSize){
+                val newId = FreshIdentifier(s"${vd.id}$j", RealType)
+                val newLet = FreshIdentifier(s"${vd.id}_$j")
+                currList = currList :+ newId
+                unrolledParamsFlattened = unrolledParamsFlattened :+ ValDef(newId)
+            }
+            currList
+        case MatrixType(_) =>
+          val mSize = specInputRanges(fnc.id)(vd.id)
+            val zero = 0
+            var currList = List(FreshIdentifier(s"${vd.id}$zero", RealType))
+            val () = println("ERROR: Matrix unrolling not supported yet")
+            for(j <- 1 to 5){
+                val newId = FreshIdentifier(s"${vd.id}$j", RealType)
+                val newLet = FreshIdentifier(s"${vd.id}_$j")
+                currList = currList :+ newId
+                unrolledParamsFlattened = unrolledParamsFlattened :+ ValDef(newId)
+            }
+            currList
+      })
+      // for some reason cannot flatten the list with flatten function
+
+      val () = println("unrolledParams: " + unrolledParamsFlattened)
+      
+      val () = println("fnc.precondition: " + fnc.precondition)
+      // we also need to overwrite the preconditions, again by unrolling
+      val newPrecondition = 
+
+
+
       val transformed = unrollAll(fnc.body.get, ctx.dsAbstractions(fnc.id), uniformPrecision)
       specInputRanges += (fnc.id -> (specInputRanges(fnc.id) ++ transformed._2))
       specInputErrors += (fnc.id -> (specInputErrors(fnc.id) ++ transformed._3))
       val args = transformed._2.keySet.map(ValDef).toSeq
       val realArgs = fnc.params.filter(vd => vd.getType == RealType)
-      fnc.copy(body = Some(transformed._1), params = realArgs ++ args)
+      fnc.copy(body = Some(transformed._1), params = unrolledParamsFlattened)
     })
 
     println("Unrolled functions:")
@@ -117,11 +201,19 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 // vector times scalar
                 // In this case, resulting let should be in this format:
                 // Let(i_0, v_0 * t2, Let(i_1, v_1 * t2, ... Let(i_vSize, v_vSize * t2, b)))
+                // t1 is a Variable
+                val t1Id = t1 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t1 is not a Variable")
+                        ""
+                    }
+                }
                 val zero = 0
-                var currLet = Let(FreshIdentifier(s"$i$zero", RealType), Times(Variable(FreshIdentifier(s"q$zero")), t2), b)
+                var currLet = Let(FreshIdentifier(s"$i$zero", RealType), Times(Variable(FreshIdentifier(s"$t1Id$zero")), t2), b)
                 for(j <- 1 to vSize){
                     val newId = FreshIdentifier(s"$i$j", RealType)
-                    val newLet = Let(newId, Times(Variable(FreshIdentifier(s"q$j")), t2), currLet)
+                    val newLet = Let(newId, Times(Variable(FreshIdentifier(s"$t1Id$j")), t2), currLet)
                     currLet = newLet
                 }
                 currLet
@@ -163,121 +255,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     ////////////////////////////}
 
 
-  /**
-   * Unrolls map over vectors/{matrix elements} with temporary Real variables:
-   * replace by nested let statements.
-   *
-   * @param v        vector to fold
-   * @param fromInd  start index of v
-   * @param toInd    end index of the unrolling on v
-   * @param init     initial value for fold
-   * @param args     arguments of the lambda function
-   * @param body     lambda function performing the fold
-   * @param dsaRange vector abstraction for ranges
-   * @param prec     uniform precision for inputs
-   * @return let-expression equivalent to the unrolled fold over v, intermediate ranges and errors updated with fresh variables ranges
-   */
-  def unrollMapwLetsOnVector(v: Expr,
-                              fromInd: Int,
-                              toInd: Int,
-                              init: Expr,
-                              args: Seq[ValDef],
-                              body: Expr,
-                              dsaRange: DSAbstraction,
-                              prec: Precision): (Expr, Map[Identifier, Interval], Map[Identifier, Rational]) = {
-    //val accId = args.head.id
-    val xId = args.head.id
-    var updSpecRanges: Map[Identifier, Interval] = Map()
-    var updSpecErrs: Map[Identifier, Rational] = Map()
 
-    def getIdAndBody(ind: Int): (Identifier, Expr) = {
-      val newId = FreshIdentifier(s"acc$v$ind", RealType, alwaysShowUniqueID = true)
-      val eltId = FreshIdentifier(s"${v}_$ind", RealType, alwaysShowUniqueID = true)
-      val newValue = replace {
-        case Variable(id) if id == xId =>
-          updSpecRanges += eltId -> dsaRange.at(ind).toInterval
-          updSpecErrs += eltId -> prec.absRoundoff(dsaRange.at(ind).toInterval)
-          Variable(eltId)
-      }(body)
-      (newId, newValue)
-    }
 
-    @tailrec
-    def buildRecursiveLet(cInd: Int, lastID: Identifier, accBody: Expr): Expr = {
-      val nextI = cInd - 1
-      if (nextI < fromInd)
-        accBody // acc is replaced with init, no new IDs are used
-      else {
-        val (newId, newBody) = getIdAndBody(nextI)
-        val newLet = Let(lastID, newBody, accBody)
-        buildRecursiveLet(nextI, newId, newLet)
-      }
-    }
-
-    val (newId, newBody) = getIdAndBody(toInd-1)
-    val unrolled = buildRecursiveLet(toInd-1, newId, newBody)
-    (unrolled, updSpecRanges, updSpecErrs)
-  }
-
-  /**
-   * Unrolls folds over vectors with temporary Real varibales: replace by nested let statements.
-   *
-   * @param v        vector to fold
-   * @param fromInd  start index of v
-   * @param toInd    end index of the unrolling on v
-   * @param init     initial value for fold
-   * @param args     arguments of the lambda function
-   * @param body     lambda function performing the fold
-   * @param dsaRange vector abstraction for ranges
-   * @param prec     uniform precision for inputs
-   * @return let-expression equivalent to the unrolled fold over v, intermediate ranges and errors updated with fresh variables ranges
-   */
-  def unrollFoldwLetsOnVector(v: Expr,
-                              fromInd: Int,
-                              toInd: Int,
-                              init: Expr,
-                              args: Seq[ValDef],
-                              body: Expr,
-                              dsaRange: DSAbstraction,
-                              prec: Precision,
-                              addedIds: Map[(Expr, Int), Identifier]):
-  (Expr, Map[Identifier, Interval], Map[Identifier, Rational], Map[(Expr, Int), Identifier]) = {
-    val accId = args.head.id
-    val xId = args(1).id
-    var updSpecRanges: Map[Identifier, Interval] = Map()
-    var updSpecErrs: Map[Identifier, Rational] = Map()
-    var moreAddedIds: Map[(Expr, Int), Identifier] = Map()
-
-    def getIdAndBody(ind: Int): (Identifier, Expr) = {
-      val newId = FreshIdentifier(s"acc$v$ind", RealType)
-      val eltId = addedIds.getOrElse((v, ind), FreshIdentifier(s"${v}_$ind", RealType, alwaysShowUniqueID = true))
-      if (!addedIds.contains(v, ind)) {
-        moreAddedIds += (v,ind) -> eltId
-      }
-      val newValue = replace {
-        case Variable(id) if id == accId => if (ind == fromInd) init else Variable(newId)
-        case Variable(id) if id == xId =>
-          updSpecRanges += eltId -> dsaRange.at(ind).toInterval
-          updSpecErrs += eltId -> prec.absRoundoff(dsaRange.at(ind).toInterval)
-          Variable(eltId)
-      }(body)
-      (newId, newValue)
-    }
-
-    @tailrec
-    def buildRecursiveLet(cInd: Int, lastID: Identifier, accBody: Expr): Expr = {
-      val nextI = cInd - 1
-      if (nextI < fromInd)
-        accBody // acc is replaced with init, no new IDs are used
-      else {
-        val (newId, newBody) = getIdAndBody(nextI)
-        val newLet = Let(lastID, newBody, accBody)
-        buildRecursiveLet(nextI, newId, newLet)
-      }
-    }
-
-    val (newId, newBody) = getIdAndBody(toInd-1)
-    val unrolled = buildRecursiveLet(toInd-1, newId, newBody)
-    (unrolled, updSpecRanges, updSpecErrs, moreAddedIds)
-  }
 }
