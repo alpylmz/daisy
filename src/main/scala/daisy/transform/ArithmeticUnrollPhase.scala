@@ -31,6 +31,58 @@ object ArithmeticUnrollPhase extends DaisyPhase {
 
   var freshIdentifierList: List[Identifier] = List()
 
+  def getFromdsaRangeMap(v: Expr, dsaRangeMap: Map[Expr, DSAbstraction]): DSAbstraction = {
+    val () = println("rangeMap: " + dsaRangeMap)
+    // I am creating new variables for vectors and matrices, using getorcreatefreshidentifier
+    // Because of that, I cannot match these variables with the ones in the dsaRangeMap
+    // Therefore, I will extract the name, and use getorcreatefreshidentifier to get the corresponding variable
+    // and then get the range from the dsaRangeMap
+    // sometimes expr is not pure var, but something like x * 2. We need to extract x from it
+    v match {
+      case VectorLiteral(id) => {
+        val () = println("VectorLiteral")
+        val () = println("id: " + id)
+        dsaRangeMap(Variable(getOrCreateFreshIdentifier(id.name, RealType)))
+      }
+      case Times(t1, t2) => {
+        if(isVector(t1) == isVector(t2)){
+          val () = println("This shouldn't happen!")
+          val () = println("ERROR: Both are vectors or both are not vectors, not supported")
+          val () = println("v: " + v)
+          dsaRangeMap(v)
+        }
+        if(isVector(t1)){
+          dsaRangeMap(t1)
+        }
+        else{
+          dsaRangeMap(t2)
+        }
+      }
+      case Plus(t1, t2) => {
+        if((isVector(t1) == isVector(t2)) && isVector(t1) == true){
+          // get the name of t1
+          val t1Id: String = t1 match{
+            case Variable(id) => id.name
+            case _ => {
+                val () = println("ERROR: Not a Variable")
+                ""
+            }
+          }
+          dsaRangeMap(Variable(getOrCreateFreshIdentifier(t1Id, RealType)))
+        }
+        else if((isVector(t1) == isVector(t2)) && isVector(t1) == false){
+          // Should we support this?
+          val () = println("ERROR: Both are not vectors, not supported")
+          dsaRangeMap(t1)
+        }
+        else{
+          val () = println("ERROR: t1 and t2 are not the same type")
+          dsaRangeMap(v)
+        }
+      }
+    }
+  }
+
   def getOrCreateFreshIdentifier(name: String, tpe: TypeTree): Identifier = {
     // if the name is already in the list, return it
     // otherwise, create a new one and return it
@@ -213,6 +265,15 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   def unrollAll(fnc: Expr, dsaRangeMap: Map[Expr, DSAbstraction], prec: Precision):
   Expr = {
     var addedIds: Map[(Expr, Int), Identifier] = Map()
+    var newdsaRangeMap: Map[Expr, DSAbstraction] = dsaRangeMap
+    val _ = dsaRangeMap.map(x =>
+      x._1 match {
+        case Variable(id) => {
+          freshIdentifierList = freshIdentifierList :+ id
+        }
+      }  
+    )
+    val () = println("dsaRangeMap: " + dsaRangeMap)
 
     def rec(e: Expr): Expr = {
     val () = println(s"rec: $e")
@@ -232,7 +293,9 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 // but not with an accumulator
                 // I am assuming that v is relatively simple
                 // It will simplify the code a lot
-                createUnrolledLet(i, v, b, dsaRangeMap)
+                newdsaRangeMap = newdsaRangeMap + (Variable(getOrCreateFreshIdentifier(i.name, RealType)) -> getFromdsaRangeMap(v, newdsaRangeMap))
+                val () = println("newdsaRangeMap: " + newdsaRangeMap)
+                createUnrolledLet(i, v, b, newdsaRangeMap)
             }
             else{
                 val () = println("b: " + b)
@@ -310,7 +373,45 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 v
             }
             ret
-
+        }
+        case Plus(t1, t2) => {
+            if((isVector(t1) == isVector(t2)) && isVector(t1) == true){
+                val t1Size = getFromdsaRangeMap(t1, dsaRangeMap).dsSize
+                val t2Size = getFromdsaRangeMap(t2, dsaRangeMap).dsSize
+                if(t1Size != t2Size){
+                    val () = println("ERROR: t1 and t2 sizes are not the same")
+                    val () = println("t1Size: " + t1Size)
+                    val () = println("t2Size: " + t2Size)
+                    val () = println("t1: " + t1)
+                    val () = println("t2: " + t2)
+                }
+                val t1Id = t1 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t1 is not a Variable")
+                        ""
+                    }
+                }
+                val t2Id = t2 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t2 is not a Variable")
+                        ""
+                    }
+                }
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(b))
+                for(j <- 1 to t1Size - 1){
+                    val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
+                    val newLet = Let(newId, Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_$j", RealType))), currLet)
+                    currLet = newLet
+                }
+                currLet
+            }
+            else{ // It would be good if I further check types
+                v
+            }
+            
+            
         }
     }  
   }
