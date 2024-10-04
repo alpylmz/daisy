@@ -85,9 +85,11 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     var specInputErrors: Map[Identifier, Map[Identifier, Rational]] = ctx.specInputErrors
 
     var newspecInputRanges: Map[Identifier, Map[Identifier, Interval]] = Map()
+    var newspecInputErrors: Map[Identifier, Map[Identifier, Rational]] = Map()
     val () = println("specInputRanges: " + specInputRanges)
     val newDefs = fncsToConsider.map(fnc => {
       var specInputRangeForFunc: Map[Identifier, Interval] = Map()
+      var specInputErrorForFunc: Map[Identifier, Rational] = Map()
       val () = println("fnc: " + fnc)
       val () = println("fnc.params: " + fnc.params)
       // fnc params is just a list
@@ -163,6 +165,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
               newPreconditionFlattened = newPreconditionFlattened :+ GreaterThan(Variable(unrollId), lb)
               newPreconditionFlattened = newPreconditionFlattened :+ LessThan(Variable(unrollId), ub)
               specInputRangeForFunc = specInputRangeForFunc + (unrollId -> Interval(lb.value, ub.value))
+              specInputErrorForFunc = specInputErrorForFunc + (unrollId -> uniformPrecision.absRoundoff(Interval(lb.value, ub.value)))
               val () = println("specInputRangeForFunc: " + specInputRangeForFunc)
             case _ => {
                 val () = println("ERROR: Not a VectorRange")
@@ -177,16 +180,16 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       fnc.precondition = Some(And(newPreconditionFlattened))
       val () = println("fnc.precondition: " + fnc.precondition)
       val () = println("newspecInputRanges: " + newspecInputRanges)
-              val () = println("specInputRangeForFunc: " + specInputRangeForFunc)
+      val () = println("specInputRangeForFunc: " + specInputRangeForFunc)
+      val () = println("specInputErrors: " + specInputErrors)
+      val () = println("specInputErrorForFunc: " + specInputErrorForFunc)
+      val () = println("newspecInputErrors: " + newspecInputErrors)
 
       newspecInputRanges = newspecInputRanges + (fnc.id -> specInputRangeForFunc)
+      newspecInputErrors = newspecInputErrors + (fnc.id -> specInputErrorForFunc)
 
       val transformed = unrollAll(fnc.body.get, ctx.dsAbstractions(fnc.id), uniformPrecision)
-      specInputRanges += (fnc.id -> (specInputRanges(fnc.id) ++ transformed._2))
-      specInputErrors += (fnc.id -> (specInputErrors(fnc.id) ++ transformed._3))
-      val args = transformed._2.keySet.map(ValDef).toSeq
-      val realArgs = fnc.params.filter(vd => vd.getType == RealType)
-      fnc.copy(body = Some(transformed._1), params = unrolledParamsFlattened)
+      fnc.copy(body = Some(transformed), params = unrolledParamsFlattened)
     })
 
     // what are the specInputRanges? we need to update them, too
@@ -197,7 +200,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     newDefs.foreach(println)
 
     (ctx.copy(specInputRanges = newspecInputRanges,
-      specInputErrors = specInputErrors), Program(prg.id, newDefs ++ functionsToConsider(ctx, prg).diff(fncsToConsider)))
+      specInputErrors = newspecInputErrors), Program(prg.id, newDefs ++ functionsToConsider(ctx, prg).diff(fncsToConsider)))
   }
 
 
@@ -208,10 +211,10 @@ object ArithmeticUnrollPhase extends DaisyPhase {
    * @return unrolled expression [[Expr]]
    */
   def unrollAll(fnc: Expr, dsaRangeMap: Map[Expr, DSAbstraction], prec: Precision):
-  (Expr, Map[Identifier, Interval], Map[Identifier, Rational]) = {
+  Expr = {
     var addedIds: Map[(Expr, Int), Identifier] = Map()
 
-    def rec(e: Expr): (Expr, Map[Identifier, Interval], Map[Identifier, Rational]) = {
+    def rec(e: Expr): Expr = {
     val () = println(s"rec: $e")
     e match {
         // one example: xx = x * 2. i = xx, v = x * 2, b is the rest
@@ -229,26 +232,45 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 // but not with an accumulator
                 // I am assuming that v is relatively simple
                 // It will simplify the code a lot
-                rec(createUnrolledLet(i, v, b, dsaRangeMap))
+                createUnrolledLet(i, v, b, dsaRangeMap)
             }
             else{
+                val () = println("b: " + b)
                 val _ = rec(b)
-                (e, Map(), Map())
+                e
             } 
         }
-        case x => {
-            val () = println(s"rec: $x")
-            (x, Map(), Map())
+        case VectorElement(expr, index) => {
+            // first get the name of vector
+            val vName = expr match{
+                case Variable(id) => id
+                case _ => {
+                    val () = println("ERROR: Not a Variable")
+                    ""
+                }
+            }
+            val () = println("VectorElement")
+            // then get the index
+            val indexInt = index match{
+                case IntegerLiteral(i) => i
+                case Int32Literal(i) => i
+                case _ => {
+                    val () = println("ERROR: Not an IntegerLiteral")
+                    val () = println("type: " + index.getClass)
+                    0
+                }
+            }
+            val () = println("changing: " + vName + " to: " + s"${vName}_$indexInt")
+            (Variable(getOrCreateFreshIdentifier(s"${vName}_$indexInt", RealType)))
         }
+        //case x => {
+        //    val () = println(s"rec: $x")
+        //    val () = println(s"x.getType: ${x.getType}")
+        //    (x, Map(), Map())
+        //}
     }}
 
-    val rec_fnc = rec(fnc)
-    println("rec_fnc: " + rec_fnc._1)
-    rec_fnc
-  }
-  // TODO don't forget to add to the context modified intermediate results/input ranges for all vector/matrix elements
-
-  def createUnrolledLet(i: Identifier, v: Expr, b: Expr, dsaRangeMap: Map[Expr, DSAbstraction]): Expr = {
+    def createUnrolledLet(i: Identifier, v: Expr, b: Expr, dsaRangeMap: Map[Expr, DSAbstraction]): Expr = {
     // i size is equal to v size
     // I'll have vSize number of new identifiers, all for i_0, i_1, ... i_vSize
     v match {
@@ -274,7 +296,9 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                     }
                 }
                 val zero = 0
-                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Times(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), t2), b)
+                val () = println("identifier is: " + s"${i}_0")
+                val () = println("body is: " + b)
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Times(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), t2), rec(b))
                 for(j <- 1 to vSize - 1){
                     val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
                     val newLet = Let(newId, Times(Variable(getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType)), t2), currLet)
@@ -290,6 +314,14 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         }
     }  
   }
+
+    val rec_fnc = rec(fnc)
+    println("rec_fnc: " + rec_fnc)
+    rec_fnc
+  }
+  // TODO don't forget to add to the context modified intermediate results/input ranges for all vector/matrix elements
+
+  
 
     ////////////////////////////def vectorScalarMult(v: Vector, s: RealLiteral): Expr = {
     ////////////////////////////    // Implement vector scalar multiplication with fold
