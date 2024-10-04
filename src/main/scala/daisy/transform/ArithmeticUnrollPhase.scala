@@ -30,60 +30,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   override implicit val debugSection = DebugSectionTransform
 
   var freshIdentifierList: List[Identifier] = List()
-
-  def getFromdsaRangeMap(v: Expr, dsaRangeMap: Map[Expr, DSAbstraction]): DSAbstraction = {
-    val () = println("rangeMap: " + dsaRangeMap)
-    // I am creating new variables for vectors and matrices, using getorcreatefreshidentifier
-    // Because of that, I cannot match these variables with the ones in the dsaRangeMap
-    // Therefore, I will extract the name, and use getorcreatefreshidentifier to get the corresponding variable
-    // and then get the range from the dsaRangeMap
-    // sometimes expr is not pure var, but something like x * 2. We need to extract x from it
-    v match {
-      case VectorLiteral(id) => {
-        val () = println("VectorLiteral")
-        val () = println("id: " + id)
-        dsaRangeMap(Variable(getOrCreateFreshIdentifier(id.name, RealType)))
-      }
-      case Times(t1, t2) => {
-        if(isVector(t1) == isVector(t2)){
-          val () = println("This shouldn't happen!")
-          val () = println("ERROR: Both are vectors or both are not vectors, not supported")
-          val () = println("v: " + v)
-          dsaRangeMap(v)
-        }
-        if(isVector(t1)){
-          val () = println("t1 is a vector")
-          val () = println("t1: " + t1)
-          dsaRangeMap(t1)
-        }
-        else{
-          dsaRangeMap(t2)
-        }
-      }
-      case Plus(t1, t2) => {
-        if((isVector(t1) == isVector(t2)) && isVector(t1) == true){
-          // get the name of t1
-          val t1Id: String = t1 match{
-            case Variable(id) => id.name
-            case _ => {
-                val () = println("ERROR: Not a Variable")
-                ""
-            }
-          }
-          dsaRangeMap(Variable(getOrCreateFreshIdentifier(t1Id, RealType)))
-        }
-        else if((isVector(t1) == isVector(t2)) && isVector(t1) == false){
-          // Should we support this?
-          val () = println("ERROR: Both are not vectors, not supported")
-          dsaRangeMap(t1)
-        }
-        else{
-          val () = println("ERROR: t1 and t2 are not the same type")
-          dsaRangeMap(v)
-        }
-      }
-    }
-  }
+  var sizeMap: Map[Identifier, Seq[Int]] = Map()
 
   def getOrCreateFreshIdentifier(name: String, tpe: TypeTree): Identifier = {
     // if the name is already in the list, return it
@@ -91,14 +38,11 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     val id = freshIdentifierList.find(_.name == name)
     id match {
       case Some(x) => {
-        val () = println("Found in the list: " + x)
         x
       }
       case None => {
         val newId = FreshIdentifier(name, tpe)
-        val () = println("Not found in the list, creating a new one: " + newId)
         freshIdentifierList = freshIdentifierList :+ newId
-        val () = println("freshIdentifierList: " + freshIdentifierList)
         newId
       }
     }
@@ -132,6 +76,152 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     size
   }
 
+  // This function should also hold the logic to decide for new sizes, e.g. what happens if you multiply two matrices? What is the new size?
+  def getDSSize(expr: Expr): Seq[Int] = {
+    val () = println("expr in getDSSize: " + expr)
+    expr match{
+      case Variable(id) => {
+        sizeMap(id)
+      }
+      case Times(t1, t2) => {
+        val t1Size: Seq[Int] = 
+          if(isVector(t1)){
+            getDSSize(t1)
+          }
+          else{
+            Seq(1)
+          }
+        val t2Size: Seq[Int] =
+          if(isVector(t2)){
+            getDSSize(t2)
+          }
+          else{
+            Seq(1)
+          }
+        if((isVector(t1) == true) && (isVector(t2) == true)){
+          val () = println("You cannot multiply two vectors")
+          val () = println("expr: " + expr)
+          Seq()
+        }
+        else if((isVector(t1) == true) && (isVector(t2) == false)){
+          Seq(t1Size.head)
+        }
+        else if((isVector(t1) == false) && (isVector(t2) == true)){
+          Seq(t2Size.head)
+        }
+        else{
+          Seq()
+        }
+      }
+      
+      case Plus(t1, t2) => {
+        val t1Size: Seq[Int] = 
+          if(isVector(t1)){
+            getDSSize(t1)
+          }
+          else{
+            Seq(1)
+          }
+        val t2Size: Seq[Int] =
+          if(isVector(t2)){
+            getDSSize(t2)
+          }
+          else{
+            Seq(1)
+          }
+        if((isVector(t1) == true) && (isVector(t2) == true)){
+          if(t1Size != t2Size){
+            val () = println("ERROR: t1 and t2 sizes are not the same")
+            val () = println("t1Size: " + t1Size)
+            val () = println("t2Size: " + t2Size)
+            val () = println("t1: " + t1)
+            val () = println("t2: " + t2)
+          }
+          t1Size
+        }
+        else if((isVector(t1) == true) && (isVector(t2) == false)){
+          t1Size
+        }
+        else if((isVector(t1) == false) && (isVector(t2) == true)){
+          t2Size
+        }
+        else{
+          Seq(1)
+        }
+      }
+
+      case Minus(t1, t2) => {
+        val t1Size: Seq[Int] = 
+          if(isVector(t1)){
+            getDSSize(t1)
+          }
+          else{
+            Seq(1)
+          }
+        val t2Size: Seq[Int] =
+          if(isVector(t2)){
+            getDSSize(t2)
+          }
+          else{
+            Seq(1)
+          }
+        if((isVector(t1) == true) && (isVector(t2) == true)){
+          if(t1Size != t2Size){
+            val () = println("ERROR: t1 and t2 sizes are not the same")
+            val () = println("t1Size: " + t1Size)
+            val () = println("t2Size: " + t2Size)
+            val () = println("t1: " + t1)
+            val () = println("t2: " + t2)
+          }
+          t1Size
+        }
+        else if((isVector(t1) == true) && (isVector(t2) == false)){
+          t1Size
+        }
+        else if((isVector(t1) == false) && (isVector(t2) == true)){
+          t2Size
+        }
+        else{
+          Seq(1)
+        }
+      }
+
+      case UMinus(t) => {
+        getDSSize(t)
+      }
+
+      case Division(t1, t2) => {
+        val t1Size: Seq[Int] = 
+          if(isVector(t1)){
+            getDSSize(t1)
+          }
+          else{
+            Seq(1)
+          }
+        val t2Size: Seq[Int] =
+          if(isVector(t2)){
+            val () = println("Vector Division not supported yet")
+            Seq()
+          }
+          else{
+            Seq(1)
+          }
+        // If t1 is a vector and t2 is a scalar, then it is okay
+        if((isVector(t1) == true) && (isVector(t2) == false)){
+          t1Size
+        }
+        else{
+          Seq(1)
+        }
+      }
+
+      case _ => {
+        val () = println("ERROR: DSSize match failed")
+        Seq()
+      }
+    }
+  }
+
   override def runPhase(ctx: Context, prg: Program): (Context, Program) = {
     val uniformPrecision = ctx.option[Precision]("precision")
     // need to replace function bodies, create a copy of the whole program
@@ -145,6 +235,28 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     val newDefs = fncsToConsider.map(fnc => {
       var specInputRangeForFunc: Map[Identifier, Interval] = Map()
       var specInputErrorForFunc: Map[Identifier, Rational] = Map()
+      // I'll set an empty list for the ds sizes just in case, but it might be wrong
+      sizeMap = Map()
+      // The next stage is to put input sizes into sizeMap
+      // I'll iterate over dsAbstractions(fnc.id) and put the sizes into sizeMap
+      for((k, v) <- ctx.dsAbstractions(fnc.id)){
+          val () = println("k: " + k)
+          val () = println("v: " + v)
+          val () = k match{
+              case RealLiteral(r) => {
+                  val () = println("ERROR: Not a ValDef, but a RealLiteral")
+              }
+              case FinitePrecisionLiteral(r, prec, _) => {
+                  val () = println("ERROR: Not a ValDef, but a FinitePrecisionLiteral")
+              }
+              case Variable(id) => {
+                  sizeMap = sizeMap + (id -> Seq(v.dsSize))
+              }
+              case _ => {
+                  val () = println("ERROR: Not a ValDef")
+              }
+          }
+      }
       val () = println("fnc: " + fnc)
       val () = println("fnc.params: " + fnc.params)
       // fnc params is just a list
@@ -163,6 +275,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           //val () = println("vSize: " + vSize)
           val () = println("ctx.dsAbstractions(fnc.id): " + ctx.dsAbstractions(fnc.id))
           val () = println("sizeofvd: " + getInputDSSize(ctx, fnc, vd))
+          val () = println("mysizeMap: " + sizeMap)
+          val () = println("getDSSize: " + getDSSize(Variable(vd.id)))
           val vdSize = getInputDSSize(ctx, fnc, vd)
           //val () = println("ctx.dsAbstractions(fnc.id)(vd.id): " + ctx.dsAbstractions(fnc.id)(vd))
           val () = println("specInputRanges: " + specInputRanges)
@@ -268,7 +382,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   def unrollAll(fnc: Expr, dsaRangeMap: Map[Expr, DSAbstraction], prec: Precision):
   Expr = {
     var addedIds: Map[(Expr, Int), Identifier] = Map()
-    var newdsaRangeMap: Map[Expr, DSAbstraction] = dsaRangeMap
+    // TODO: get rid of dsaRangeMap dependency here
     val _ = dsaRangeMap.map(x =>
       x._1 match {
         case Variable(id) => {
@@ -276,9 +390,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         }
       }  
     )
-    val () = println("dsaRangeMap: " + dsaRangeMap)
 
-    def rec(e: Expr): Expr = {
+  def rec(e: Expr): Expr = {
     val () = println(s"rec: $e")
     e match {
         // one example: xx = x * 2. i = xx, v = x * 2, b is the rest
@@ -296,15 +409,15 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 // but not with an accumulator
                 // I am assuming that v is relatively simple
                 // It will simplify the code a lot
-                val () = println("Var.name: " + i.name)
-                val () = println("newdsaRangeMap: " + newdsaRangeMap)
+                val () = println("v is a vector")
                 val () = println("v: " + v)
-                val () = println("getFromdsaRangeMap(v, newdsaRangeMap): " + getFromdsaRangeMap(v, newdsaRangeMap))
-                newdsaRangeMap = newdsaRangeMap + (Variable(getOrCreateFreshIdentifier(i.name, RealType)) -> getFromdsaRangeMap(v, newdsaRangeMap))
-                val () = println("newdsaRangeMap: " + newdsaRangeMap)
-                createUnrolledLet(i, v, b, newdsaRangeMap)
+                val vSize = getDSSize(v).head
+                sizeMap = sizeMap + (i -> Seq(vSize))
+                createUnrolledLet(i, v, b)
             }
             else{
+                val () = println("v is not a vector")
+                val () = println("v: " + v)
                 val () = println("b: " + b)
                 val _ = rec(b)
                 e
@@ -340,7 +453,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         //}
     }}
 
-    def createUnrolledLet(i: Identifier, v: Expr, b: Expr, dsaRangeMap: Map[Expr, DSAbstraction]): Expr = {
+    def createUnrolledLet(i: Identifier, v: Expr, b: Expr): Expr = {
     // i size is equal to v size
     // I'll have vSize number of new identifiers, all for i_0, i_1, ... i_vSize
     v match {
@@ -353,7 +466,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             }
             val ret = 
             if(isVector(t1)){
-                val vSize = dsaRangeMap(t1).dsSize
+                val vSize = getDSSize(t1).head
                 // vector times scalar
                 // In this case, resulting let should be in this format:
                 // Let(i_0, v_0 * t2, Let(i_1, v_1 * t2, ... Let(i_vSize, v_vSize * t2, b)))
@@ -361,7 +474,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 val t1Id = t1 match{
                     case Variable(id) => id
                     case _ => {
-                        val () = println("ERROR: t1 is not a Variable")
+                        val () = println("ERROR: t1 is not a Variable in createUnrolledLet Times")
                         ""
                     }
                 }
@@ -383,8 +496,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         }
         case Plus(t1, t2) => {
             if((isVector(t1) == isVector(t2)) && isVector(t1) == true){
-                val t1Size = getFromdsaRangeMap(t1, dsaRangeMap).dsSize
-                val t2Size = getFromdsaRangeMap(t2, dsaRangeMap).dsSize
+                val t1Size = getDSSize(t1).head
+                val t2Size = getDSSize(t2).head
                 if(t1Size != t2Size){
                     val () = println("ERROR: t1 and t2 sizes are not the same")
                     val () = println("t1Size: " + t1Size)
@@ -395,14 +508,17 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 val t1Id = t1 match{
                     case Variable(id) => id
                     case _ => {
-                        val () = println("ERROR: t1 is not a Variable")
+                        val () = println("ERROR: t1 is not a Variable in CreateUnrolledLet Plus")
+                        val () = println("t1: " + t1)
                         ""
                     }
                 }
                 val t2Id = t2 match{
                     case Variable(id) => id
                     case _ => {
-                        val () = println("ERROR: t2 is not a Variable")
+                        val () = println("ERROR: t2 is not a Variable in Plus")
+                        val () = println("t2: " + t2)
+                        val () = println("v: " + v)
                         ""
                     }
                 }
@@ -414,11 +530,138 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 }
                 currLet
             }
+            else if(isVector(t1) && !isVector(t2)){
+                val t1Size = getDSSize(t1).head
+                val t1Id = t1 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t1 is not a Variable in CreateUnrolledLet Plus2")
+                        ""
+                    }
+                }
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), t2), rec(b))
+                for(j <- 1 to t1Size - 1){
+                    val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
+                    val newLet = Let(newId, Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType)), t2), currLet)
+                    currLet = newLet
+                }
+                currLet
+            }
+            else if(!isVector(t1) && isVector(t2)){
+                val t2Size = getDSSize(t2).head
+                val t2Id = t2 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t2 is not a Variable in Plus")
+                        val () = println("t2: " + t2)
+                        val () = println("v: " + v)
+                        ""
+                    }
+                }
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Plus(t1, Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(b))
+                for(j <- 1 to t2Size - 1){
+                    val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
+                    val newLet = Let(newId, Plus(t1, Variable(getOrCreateFreshIdentifier(s"${t2Id}_$j", RealType))), currLet)
+                    currLet = newLet
+                }
+                currLet
+            }
             else{ // It would be good if I further check types
                 v
             }
-            
-            
+        }
+        case Division(t1, t2) => {
+            if((isVector(t1) == true) && (isVector(t2) == false)){
+                val t1Size = getDSSize(t1).head
+                val () = println("working on division expr: " + v)
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Division(Variable(getOrCreateFreshIdentifier(s"${t1}_0", RealType)), t2), rec(b))
+                for(j <- 1 to t1Size - 1){
+                    val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
+                    val newLet = Let(newId, Division(Variable(getOrCreateFreshIdentifier(s"${t1}_$j", RealType)), t2), currLet)
+                    currLet = newLet
+                }
+                val () = println("currLet: " + currLet)
+                val () = println("rec(b): " + rec(b))
+                currLet
+            }
+            else{
+                v
+            }
+        }
+        case Minus(t1, t2) => {
+            if((isVector(t1) == isVector(t2)) && isVector(t1) == true){
+                val t1Size = getDSSize(t1).head
+                val t2Size = getDSSize(t2).head
+                if(t1Size != t2Size){
+                    val () = println("ERROR: t1 and t2 sizes are not the same")
+                    val () = println("t1Size: " + t1Size)
+                    val () = println("t2Size: " + t2Size)
+                    val () = println("t1: " + t1)
+                    val () = println("t2: " + t2)
+                }
+                val t1Id = t1 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t1 is not a Variable in CreateUnrolledLet Minus")
+                        ""
+                    }
+                }
+                val t2Id = t2 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t2 is not a Variable in Plus")
+                        val () = println("t2: " + t2)
+                        val () = println("v: " + v)
+                        ""
+                    }
+                }
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(b))
+                for(j <- 1 to t1Size - 1){
+                    val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
+                    val newLet = Let(newId, Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_$j", RealType))), currLet)
+                    currLet = newLet
+                }
+                currLet
+            }
+            else if(isVector(t1) && !isVector(t2)){
+                val t1Size = getDSSize(t1).head
+                val t1Id = t1 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t1 is not a Variable in CreateUnrolledLet Minus2")
+                        ""
+                    }
+                }
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), t2), rec(b))
+                for(j <- 1 to t1Size - 1){
+                    val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
+                    val newLet = Let(newId, Plus(Variable(getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType)), t2), currLet)
+                    currLet = newLet
+                }
+                currLet
+            }
+            else if(!isVector(t1) && isVector(t2)){
+                val t2Size = getDSSize(t2).head
+                val t2Id = t2 match{
+                    case Variable(id) => id
+                    case _ => {
+                        val () = println("ERROR: t2 is not a Variable in Plus")
+                        val () = println("t2: " + t2)
+                        val () = println("v: " + v)
+                        ""
+                    }
+                }
+                var currLet = Let(getOrCreateFreshIdentifier(s"${i}_0", RealType), Plus(t1, Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(b))
+                for(j <- 1 to t2Size - 1){
+                    val newId = getOrCreateFreshIdentifier(s"${i}_$j", RealType)
+                    val newLet = Let(newId, Plus(t1, Variable(getOrCreateFreshIdentifier(s"${t2Id}_$j", RealType))), currLet)
+                    currLet = newLet
+                }
+                currLet
+            }
+            else{ // It would be good if I further check types
+                v
+            }
         }
     }  
   }
