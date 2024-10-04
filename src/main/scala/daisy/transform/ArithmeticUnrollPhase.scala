@@ -52,6 +52,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           dsaRangeMap(v)
         }
         if(isVector(t1)){
+          val () = println("t1 is a vector")
+          val () = println("t1: " + t1)
           dsaRangeMap(t1)
         }
         else{
@@ -96,6 +98,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         val newId = FreshIdentifier(name, tpe)
         val () = println("Not found in the list, creating a new one: " + newId)
         freshIdentifierList = freshIdentifierList :+ newId
+        val () = println("freshIdentifierList: " + freshIdentifierList)
         newId
       }
     }
@@ -293,6 +296,10 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 // but not with an accumulator
                 // I am assuming that v is relatively simple
                 // It will simplify the code a lot
+                val () = println("Var.name: " + i.name)
+                val () = println("newdsaRangeMap: " + newdsaRangeMap)
+                val () = println("v: " + v)
+                val () = println("getFromdsaRangeMap(v, newdsaRangeMap): " + getFromdsaRangeMap(v, newdsaRangeMap))
                 newdsaRangeMap = newdsaRangeMap + (Variable(getOrCreateFreshIdentifier(i.name, RealType)) -> getFromdsaRangeMap(v, newdsaRangeMap))
                 val () = println("newdsaRangeMap: " + newdsaRangeMap)
                 createUnrolledLet(i, v, b, newdsaRangeMap)
