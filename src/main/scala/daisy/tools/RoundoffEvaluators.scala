@@ -17,7 +17,7 @@ import com.sun.jna.Structure;
 
 trait roundoff2 extends Library {
   def _Z14wholemultlowerffffffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float, xlo2: Float, xhi2: Float, ylo2: Float, yhi2: Float): Float
-  def _Z14wholemultupperv(): Float
+  def _Z14wholemultupperffffffff(xlo: Float, xhi: Float, ylo: Float, yhi: Float, xlo2: Float, xhi2: Float, ylo2: Float, yhi2: Float): Float
 }
 
 trait RoundoffEvaluators extends RangeEvaluators {
@@ -605,7 +605,16 @@ trait RoundoffEvaluators extends RangeEvaluators {
           errorLhsxlo.toFloat,
           errorLhsxhi.toFloat
         )
-        val propagatedErrorxhi: Float = multFunc._Z14wholemultupperv()
+        val propagatedErrorxhi: Float = multFunc._Z14wholemultupperffffffff(
+          abstractRangeLhsxlo.toFloat,
+          abstractRangeLhsxhi.toFloat,
+          abstractRangeRhsxlo.toFloat,
+          abstractRangeRhsxhi.toFloat,
+          errorRhsxlo.toFloat,
+          errorRhsxhi.toFloat,
+          errorLhsxlo.toFloat,
+          errorLhsxhi.toFloat
+        )
         val propagatedError = Interval(propagatedErrorxlo, propagatedErrorxhi)
 
         // OLD METHOD:

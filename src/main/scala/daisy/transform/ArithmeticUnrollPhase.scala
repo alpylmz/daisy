@@ -39,6 +39,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         case Variable(id) => id.name
         case _ => {
             val () = println("WARNING: Not a Variable")
+            // print the expression
+            val () = println("expr: " + expr)
             indexCounter = indexCounter + 1
             s"temp${indexCounter}"
         }
@@ -118,7 +120,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           Seq(t2Size.head)
         }
         else{
-          Seq()
+          Seq(1)
         }
       }
       
@@ -206,25 +208,42 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           else{
             Seq(1)
           }
-        val t2Size: Seq[Int] =
-          if(isVector(t2)){
-            val () = println("ERROR: Vector Division not supported yet")
-            Seq()
-          }
-          else{
-            Seq(1)
-          }
         // If t1 is a vector and t2 is a scalar, then it is okay
         if((isVector(t1) == true) && (isVector(t2) == false)){
           t1Size
+        }
+        else if((isVector(t1) == true) && (isVector(t2) == true)){
+          val () = println("ERROR: You cannot divide two vectors")
+          val () = println("expr: " + expr)
+          Seq()
+        }
+        else if((isVector(t1) == false) && (isVector(t2) == true)){
+          val () = println("ERROR: You cannot divide a scalar by a vector")
+          val () = println("expr: " + expr)
+          Seq()
         }
         else{
           Seq(1)
         }
       }
 
+      case Sin(e) => {
+        getDSSize(e)
+      }
+
+      case Cos(e) => {
+        getDSSize(e)
+      }
+
+      case Tan(e) => {
+        getDSSize(e)
+      }
+
       case _ => {
         val () = println("ERROR: DSSize match failed")
+        val () = println("expr: " + expr)
+        // print the type of the expression
+        val () = println("type: " + expr.getClass)
         Seq()
       }
     }
@@ -240,6 +259,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     var newspecInputRanges: Map[Identifier, Map[Identifier, Interval]] = Map()
     var newspecInputErrors: Map[Identifier, Map[Identifier, Rational]] = Map()
     val newDefs = fncsToConsider.map(fnc => {
+      val () = println("Unrolling function: " + fnc.id)
+      val () = println("fnc: " + fnc)
       var specInputRangeForFunc: Map[Identifier, Interval] = Map()
       var specInputErrorForFunc: Map[Identifier, Rational] = Map()
       // I'll set an empty list for the ds sizes just in case, but it might be wrong
@@ -367,8 +388,42 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         }
       }  
     )
+  
+  def createLetExpr(id: String, opr: Any, t1: Expr, t2: Expr, body: Expr): Expr = {
+    // if the opr is Plus, Minus, Times, Division, then we'll call createLetExprTwo
+    // if the opr is Sin, Cos, Tan, then we'll call createLetExprOne
 
-  def createLetExpr(id: String, opr: (Expr, Expr) => Expr, t1: Expr, t2: Expr, body: Expr): Expr = {
+    opr match {
+      case Plus => {
+        createLetExprTwo(id, Plus, t1, t2, body)
+      }
+      case Minus => {
+        createLetExprTwo(id, Minus, t1, t2, body)
+      }
+      case Times => {
+        createLetExprTwo(id, Times, t1, t2, body)
+      }
+      case Division => {
+        createLetExprTwo(id, Division, t1, t2, body)
+      }
+      case Sin => {
+        createLetExprOne(id, Sin, t1, body)
+      }
+      case Cos => {
+        createLetExprOne(id, Cos, t1, body)
+      }
+      case Tan => {
+        createLetExprOne(id, Tan, t1, body)
+      }
+      case _ => {
+        val () = println("ERROR: opr is not supported")
+        val () = println("opr: " + opr)
+        t1
+      }
+    }
+  }
+
+  def createLetExprTwo(id: String, opr: (Expr, Expr) => Expr, t1: Expr, t2: Expr, body: Expr): Expr = {
     val t1Id = findOrCreateIndex(t1)
     val t2Id = findOrCreateIndex(t2)
     if(isVector(t1) && isVector(t2)){
@@ -415,6 +470,23 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     }
   }
 
+  def createLetExprOne(id: String, opr: (Expr) => Expr, t1: Expr, body: Expr): Expr = {
+    val t1Id = findOrCreateIndex(t1)
+    if(isVector(t1)){
+      val t1Size = getDSSize(t1).head
+      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType))), rec(body))
+      for(j <- 1 to t1Size - 1){
+          val newId = getOrCreateFreshIdentifier(s"${id}_$j", RealType)
+          val newLet = Let(newId, opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType))), currLet)
+          currLet = newLet
+      }
+      currLet
+    }
+    else{ // TODO: CHECK
+      Let(getOrCreateFreshIdentifier(s"${id}", RealType), opr(t1), rec(body))
+    }
+  }
+
   def rec(e: Expr): Expr = {
     e match {
         case Let(i, v, b) => {
@@ -452,6 +524,11 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             }
             (Variable(getOrCreateFreshIdentifier(s"${vName}_$indexInt", RealType)))
         }
+        case _ => {
+          val () = println("ERROR: rec match failed")
+          val () = println("expr: " + e)
+          e
+        }
     }}
 
     def createUnrolledLet(i: Identifier, v: Expr, b: Expr): Expr = {
@@ -475,6 +552,14 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         case Minus(t1, t2) => {
             createLetExpr(i.name, Minus, t1, t2, b)
         }
+        case Sin(e) => {
+            createLetExpr(i.name, Sin, e, e, b)
+        }
+        case Cos(e) => {
+            createLetExpr(i.name, Cos, e, e, b)
+        }
+
+
     }  
   }
 
