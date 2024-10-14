@@ -139,6 +139,16 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           else{
             Seq(1)
           }
+        if((isMatrix(t1) == true) && (isMatrix(t2) == true)) {
+          if(t1Size != t2Size){
+            val () = println("ERROR: t1 and t2 sizes are not the same")
+            val () = println("t1Size: " + t1Size)
+            val () = println("t2Size: " + t2Size)
+            val () = println("t1: " + t1)
+            val () = println("t2: " + t2)
+          }
+          t1Size
+        }
         if((isVector(t1) == true) && (isVector(t2) == true)){
           if(t1Size != t2Size){
             val () = println("ERROR: t1 and t2 sizes are not the same")
@@ -276,7 +286,12 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                   val () = println("ERROR: Not a ValDef, but a FinitePrecisionLiteral")
               }
               case Variable(id) => {
-                  sizeMap = sizeMap + (id -> Seq(v.dsSize))
+                  if(isMatrix(k)){
+                    sizeMap = sizeMap + (id -> Seq(v.numRows, v.numCols))
+                  }
+                  else{
+                    sizeMap = sizeMap + (id -> Seq(v.dsSize))
+                  }
               }
               case _ => {
                   val () = println("ERROR: Not a ValDef")
@@ -294,31 +309,31 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           unrolledParamsFlattened = unrolledParamsFlattened :+ vd
           vd
         }
-        case VectorType(_) =>
-          //val vSize = ctx.dsAbstractions(fnc.id)(vd.id).dsSize
-          //val () = println("vSize: " + vSize)
-          val vdSize = getInputDSSize(ctx, fnc, vd)
-          //var currList = List(FreshIdentifier(s"${vd.id}_0", RealType))
-          var currList = List(getOrCreateFreshIdentifier(s"${vd.id}_0", RealType))
-          unrolledParamsFlattened = unrolledParamsFlattened :+ ValDef(currList(0))
+        case VectorType(_) => {
+          // getInputDSSize returns us an integer
+          // in MatrixType, we are getting the total size, there is no difference between rows and columns
+          val vdSize = getInputDSSize(ctx, fnc, vd)        //var currList = List(FreshIdentifier(s"${vd.id}_0", RealType))
+          var currList: List[Identifier] = List()
           for(j <- 1 to vdSize - 1){
-              val newId = getOrCreateFreshIdentifier(s"${vd.id}_$j", RealType)
-              val newLet = getOrCreateFreshIdentifier(s"${vd.id}_$j", RealType)
-              currList = currList :+ newId
-              unrolledParamsFlattened = unrolledParamsFlattened :+ ValDef(newId)
+            val newId = getOrCreateFreshIdentifier(s"${vd.id}_$j", RealType)
+            currList = currList :+ newId
+            unrolledParamsFlattened = unrolledParamsFlattened :+ ValDef(newId)
           }
           currList
-        case MatrixType(_) =>
-          val mSize = specInputRanges(fnc.id)(vd.id)
-            var currList = List(getOrCreateFreshIdentifier(s"${vd.id}_0", RealType))
-            val () = println("ERROR: Matrix unrolling not supported yet")
-            for(j <- 1 to 5){
-                val newId = getOrCreateFreshIdentifier(s"${vd.id}_$j", RealType)
-                val newLet = getOrCreateFreshIdentifier(s"${vd.id}_$j", RealType)
-                currList = currList :+ newId
-                unrolledParamsFlattened = unrolledParamsFlattened :+ ValDef(newId)
+        }
+        case MatrixType(_) => {
+          val rowSize = ctx.dsAbstractions(fnc.id)(Variable(vd.id)).numRows
+          val colSize = ctx.dsAbstractions(fnc.id)(Variable(vd.id)).numCols
+          var currList: List[Identifier] = List()
+          for(i <- 0 to rowSize - 1){
+            for(j <- 0 to colSize - 1){
+              val newId = getOrCreateFreshIdentifier(s"${vd.id}_${i}_$j", RealType)
+              currList = currList :+ newId
+              unrolledParamsFlattened = unrolledParamsFlattened :+ ValDef(newId)
             }
-            currList
+          }
+        }
+
       })
       // for some reason cannot flatten the list with flatten function
 
@@ -327,10 +342,10 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       // fnc.precondition: Some(((x ? -62.54) ? (x ? 15.02) ? x.(4) ? Tree? (class daisy.lang.Trees$VectorRange) ? Tree? (class daisy.lang.Trees$VectorRange) ? Tree? (class daisy.lang.Trees$VectorRange) ? Tree? (class daisy.lang.Trees$VectorRange)))
       // I'll only use VectorRange, others seems useless
       var newPreconditionFlattened: List[Expr] = List()
-      val newPrecondition = fnc.precondition.map(precond => precond match{
+      fnc.precondition.map(precond => precond match{
         case And(exprs) => {
           exprs.map(expr => expr match{
-            case VectorRange(v, fromInd, toInd, lb, ub) =>
+            case VectorRange(v, fromInd, toInd, lb, ub) => {
               if(fromInd != toInd){
                 val () = println("ERROR: fromInd and toInd should be the same, the other case is not supported")
               }
@@ -346,12 +361,32 @@ object ArithmeticUnrollPhase extends DaisyPhase {
               newPreconditionFlattened = newPreconditionFlattened :+ LessThan(Variable(unrollId), ub)
               specInputRangeForFunc = specInputRangeForFunc + (unrollId -> Interval(lb.value, ub.value))
               specInputErrorForFunc = specInputErrorForFunc + (unrollId -> uniformPrecision.absRoundoff(Interval(lb.value, ub.value)))
+            }
+            case MatrixRange(v, indices, lb, ub) => {
+              // MatrixRange(v: MatrixLiteral, indices: Seq[(Int, Int)], lb: RealLiteral, ub: RealLiteral)
+              // all indices in the matrix range has only one element, which is another set that includes 2 elements, row and column position
+              val rowInd = indices.head._1
+              val colInd = indices.head._2
+              val vId = v match{
+                case MatrixLiteral(id) => id
+                case _ => {
+                    val () = println("ERROR: Not a MatrixLiteral")
+                    ""
+                }
+              }
+              val unrollId = getOrCreateFreshIdentifier(s"${vId}_${rowInd}_$colInd", RealType)
+              newPreconditionFlattened = newPreconditionFlattened :+ GreaterThan(Variable(unrollId), lb)
+              newPreconditionFlattened = newPreconditionFlattened :+ LessThan(Variable(unrollId), ub)
+              specInputRangeForFunc = specInputRangeForFunc + (unrollId -> Interval(lb.value, ub.value))
+              specInputErrorForFunc = specInputErrorForFunc + (unrollId -> uniformPrecision.absRoundoff(Interval(lb.value, ub.value)))
+            }
             case _ => {
             }
           })  
         }
 
       })
+
       //val () = println("newPrecondition: " + newPreconditionFlattened)
       fnc.precondition = Some(And(newPreconditionFlattened))
 
@@ -426,7 +461,44 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   def createLetExprTwo(id: String, opr: (Expr, Expr) => Expr, t1: Expr, t2: Expr, body: Expr): Expr = {
     val t1Id = findOrCreateIndex(t1)
     val t2Id = findOrCreateIndex(t2)
-    if(isVector(t1) && isVector(t2)){
+    if(isMatrix(t1) && isMatrix(t2)){
+      // These identifiers *may* be different then the ones in findOrCreateIndex, not sure
+      val t1Identifier: Identifier = t1 match { 
+        case Variable(id) => 
+          id
+      }
+      val t2Identifier: Identifier = t2 match { 
+        case Variable(id) => 
+          id
+      }
+      val t1Size: Seq[Int] = sizeMap(t1Identifier)
+      val t2Size: Seq[Int] = sizeMap(t2Identifier)
+      val t1RowSize = t1Size.head
+      val t1ColSize = t1Size(1)
+      val t2RowSize = t2Size.head
+      val t2ColSize = t2Size(1)
+      if((t1RowSize != t2RowSize) || (t1ColSize != t2ColSize)){
+        val () = println("ERROR: t1 and t2 sizes are not the same")
+        val () = println("t1RowSize: " + t1RowSize)
+        val () = println("t1ColSize: " + t1ColSize)
+        val () = println("t2RowSize: " + t2RowSize)
+        val () = println("t2ColSize: " + t2ColSize)
+        val () = println("t1: " + t1)
+        val () = println("t2: " + t2)
+        val () = println("opr: " + opr)
+      }
+      // id_row_col
+      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0_0", RealType))), rec(body))
+      for(i <- 1 to t1RowSize - 1){
+        for(j <- 1 to t1ColSize - 1){
+          val newId = getOrCreateFreshIdentifier(s"${id}_${i}_$j", RealType)
+          val newLet = Let(newId, opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_${i}_$j", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_${i}_$j", RealType))), currLet)
+          currLet = newLet
+        }
+      }
+      currLet
+    }
+    else if(isVector(t1) && isVector(t2)){
       val t1Size = getDSSize(t1).head
       val t2Size = getDSSize(t2).head
       if(t1Size != t2Size){
@@ -490,7 +562,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   def rec(e: Expr): Expr = {
     e match {
         case Let(i, v, b) => {
-            if(isVector(v)){
+            if(isVector(v) | isMatrix(v)){
                 // but not with an accumulator
                 // I am assuming that v is relatively simple
                 // It will simplify the code a lot
@@ -524,6 +596,36 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             }
             (Variable(getOrCreateFreshIdentifier(s"${vName}_$indexInt", RealType)))
         }
+        case MatrixElement(expr, row_index, col_index) => {
+            // first get the name of matrix
+            val mName = expr match{
+                case Variable(id) => id
+                case _ => {
+                    val () = println("ERROR: Not a Variable")
+                    ""
+                }
+            }
+            // then get the row and column indices
+            val rowInd = row_index match{
+                case IntegerLiteral(i) => i
+                case Int32Literal(i) => i
+                case _ => {
+                    val () = println("ERROR: Not an IntegerLiteral")
+                    val () = println("type: " + row_index.getClass)
+                    0
+                }
+            }
+            val colInd = col_index match{
+                case IntegerLiteral(i) => i
+                case Int32Literal(i) => i
+                case _ => {
+                    val () = println("ERROR: Not an IntegerLiteral")
+                    val () = println("type: " + col_index.getClass)
+                    0
+                }
+            }
+            (Variable(getOrCreateFreshIdentifier(s"${mName}_${rowInd}_$colInd", RealType)))
+        }
         case _ => {
           val () = println("ERROR: rec match failed")
           val () = println("expr: " + e)
@@ -535,28 +637,28 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     // i size is equal to v size
     v match {
         case Times(t1, t2) => {
-            if(isVector(t1) == isVector(t2)){
-                val () = println("This shouldn't happen!")
-                val () = println("ERROR: Both are vectors or both are not vectors, not supported")
-                val () = println("v: " + v)
-                v
-            }
-            createLetExpr(i.name, Times, t1, t2, b)
+          if(isVector(t1) == isVector(t2)){
+              val () = println("This shouldn't happen!")
+              val () = println("ERROR: Both are vectors or both are not vectors, not supported")
+              val () = println("v: " + v)
+              v
+          }
+          createLetExpr(i.name, Times, t1, t2, b)
         }
         case Plus(t1, t2) => {
-            createLetExpr(i.name, Plus, t1, t2, b)
+          createLetExpr(i.name, Plus, t1, t2, b)
         }
         case Division(t1, t2) => {
-            createLetExpr(i.name, Division, t1, t2, b)
+          createLetExpr(i.name, Division, t1, t2, b)
         }
         case Minus(t1, t2) => {
-            createLetExpr(i.name, Minus, t1, t2, b)
+          createLetExpr(i.name, Minus, t1, t2, b)
         }
         case Sin(e) => {
-            createLetExpr(i.name, Sin, e, e, b)
+          createLetExpr(i.name, Sin, e, e, b)
         }
         case Cos(e) => {
-            createLetExpr(i.name, Cos, e, e, b)
+          createLetExpr(i.name, Cos, e, e, b)
         }
 
 
