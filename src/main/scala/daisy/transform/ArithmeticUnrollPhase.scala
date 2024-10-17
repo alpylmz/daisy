@@ -359,6 +359,10 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         getDSSize(e)
       }
 
+      case MatrixFromLists(lists, numRows, numCols) => {
+        Seq(numRows, numCols)
+      }
+
       case _ => {
         val () = println("ERROR: DSSize match failed")
         val () = println("expr: " + expr)
@@ -561,6 +565,13 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       case Tan => {
         createLetExprOne(id, Tan, t1, body)
       }
+      case UMinus => {
+        val () = println("createLetExpr: UMinus")
+        val () = println("id: " + id)
+        val () = println("t1: " + t1)
+        val () = println("body: " + body)
+        createLetExprOne(id, UMinus, t1, body)
+      }
       case _ => {
         val () = println("ERROR: opr is not supported")
         val () = println("opr: " + opr)
@@ -708,7 +719,12 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       currLet
     }
     else{ // TODO: CHECK
-      Let(getOrCreateFreshIdentifier(s"${id}", RealType), opr(t1), rec(body))
+      // there may be some Vector or Matrix elements in t1 and t2. And we still need to process them to convert the names to {vector_name}_{index}
+      val () = println("createLetExprOne body: " + body)
+      val () = println("createLetExprOne t1: " + t1)
+      val () = println("createLetExprOne id: " + id)
+      val () = println("rec(body): " + rec(body))
+      Let(getOrCreateFreshIdentifier(s"${id}", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}", RealType))), rec(body))
     }
   }
 
@@ -724,8 +740,13 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 createUnrolledLet(i, v, b)
             }
             else{
+                val () = println("rec got e: " + e)
+                val () = println("i: " + i)
+                val () = println("v: " + v)
+                val () = println("b: " + b)
                 sizeMap = sizeMap + (i -> Seq(1))
                 val res = createUnrolledLet(i, v, b)
+                val () = println("rec res: " + res)
                 res
             } 
         }
@@ -781,9 +802,17 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             (Variable(getOrCreateFreshIdentifier(s"${mName}_${rowInd}_$colInd", RealType)))
         }
         case Variable(id) => {
+          val () = println("WE GOT A VARIABLE: " + id)
             val id_str = id.name
             (Variable(getOrCreateFreshIdentifier(id_str, RealType)))
         }
+
+        case RealLiteral(r) => {
+            RealLiteral(r)
+        }
+
+        // If it is something else, then we first need to process that and put the value in a temporary variable
+        // and then we can use that temporary variable in the expression
         case _ => {
           val () = println("ERROR: rec match failed")
           val () = println("expr: " + e)
@@ -794,7 +823,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         }
     }}
 
-    def createUnrolledLet(i: Identifier, v: Expr, b: Expr): Expr = {
+    def createUnrolledLet(id: Identifier, v: Expr, b: Expr): Expr = {
     // i size is equal to v size
     v match {
         case Times(t1, t2) => {
@@ -804,22 +833,144 @@ object ArithmeticUnrollPhase extends DaisyPhase {
               val () = println("v: " + v)
               v
           }
-          createLetExpr(i.name, Times, t1, t2, b)
+          createLetExpr(id.name, Times, t1, t2, b)
         }
         case Plus(t1, t2) => {
-          createLetExpr(i.name, Plus, t1, t2, b)
+          createLetExpr(id.name, Plus, t1, t2, b)
         }
         case Division(t1, t2) => {
-          createLetExpr(i.name, Division, t1, t2, b)
+          createLetExpr(id.name, Division, t1, t2, b)
         }
         case Minus(t1, t2) => {
-          createLetExpr(i.name, Minus, t1, t2, b)
+          createLetExpr(id.name, Minus, t1, t2, b)
         }
         case Sin(e) => {
-          createLetExpr(i.name, Sin, e, e, b)
+          createLetExpr(id.name, Sin, e, e, b)
         }
         case Cos(e) => {
-          createLetExpr(i.name, Cos, e, e, b)
+          createLetExpr(id.name, Cos, e, e, b)
+        }
+        case UMinus(e) => {
+          val () = println("Uminus b: " + b)
+          val () = println("Uminus e: " + e)
+          val () = println("Uminus id: " + id)
+          createLetExpr(id.name, UMinus, e, e, b)
+        }
+
+        // this just means that it is already unrolled
+        // I think we certainly use rec(v) here for name unrolling just in case
+        // it may not be unrolled
+        // v may be matrix, the variable may be a matrix, or both could be vectors, which means it is just an assignment
+        // we need to handle all of these cases
+        case Variable(var_name) => {
+          val id_str = id.name
+
+          if(isMatrix(v)){
+            // need to unroll all assignments
+            val vSize: Seq[Int] = getDSSize(v)
+            val vRowSize = vSize.head
+            val vColSize = vSize(1)
+            var currLet = Let(getOrCreateFreshIdentifier(s"${id_str}_0_0", RealType), Variable(getOrCreateFreshIdentifier(s"${var_name.name}_0_0", RealType)), rec(b))
+            for(i <- 0 to vRowSize - 1){
+              for(j <- 0 to vColSize - 1){
+                if(i == 0 && j == 0){
+                  // we already did this
+                  ()
+                }
+                else{
+                  val newId = getOrCreateFreshIdentifier(s"${id_str}_${i}_$j", RealType)
+                  val newLet = Let(newId, Variable(getOrCreateFreshIdentifier(s"${var_name.name}_${i}_$j", RealType)), currLet)
+                  currLet = newLet
+                }
+              }
+            }
+            currLet
+          }
+          else if(isVector(v)){
+            val vSize = getDSSize(v).head
+            var currLet = Let(getOrCreateFreshIdentifier(s"${id_str}_0", RealType), Variable(getOrCreateFreshIdentifier(s"${var_name.name}_0", RealType)), rec(b))
+            for(j <- 1 to vSize - 1){
+              val newId = getOrCreateFreshIdentifier(s"${id_str}_$j", RealType)
+              val newLet = Let(newId, Variable(getOrCreateFreshIdentifier(s"${var_name.name}_$j", RealType)), currLet)
+              currLet = newLet
+            }
+            currLet
+          }
+          else{
+            Let(getOrCreateFreshIdentifier(id_str, RealType), v, b)
+          }
+        }
+
+        case MatrixElement(expr, row_index, col_index) => {
+          val mName = expr match{
+            case Variable(id) => id
+            case _ => {
+                val () = println("ERROR: Not a Variable")
+                ""
+            }
+          }
+          val rowInd = row_index match{
+            case IntegerLiteral(i) => i
+            case Int32Literal(i) => i
+            case _ => {
+                val () = println("ERROR: Not an IntegerLiteral")
+                0
+            }
+          }
+          val colInd = col_index match{
+            case IntegerLiteral(i) => i
+            case Int32Literal(i) => i
+            case _ => {
+                val () = println("ERROR: Not an IntegerLiteral")
+                0
+            }
+          }
+          Let(getOrCreateFreshIdentifier(s"${mName}_${rowInd}_$colInd", RealType), v, b)
+        }
+
+        // write every element as another variable 
+        case MatrixFromLists(lists, numRows, numCols) => {
+          var currLet = Let(getOrCreateFreshIdentifier(s"${id.name}_0_0", RealType), rec(lists.head.head), rec(b))
+          for(i <- 0 to numRows - 1){
+            for(j <- 0 to numCols - 1){
+              if(i == 0 && j == 0){
+                // we already did this
+                ()
+              }
+              else{
+                val newId = getOrCreateFreshIdentifier(s"${id.name}_${i}_$j", RealType)
+                try{
+                  currLet = Let(newId, rec(lists(i)(j)), currLet)
+                }
+                catch {
+                  case e: Exception => {
+                    // For now I'll assume that the error is because lists(i)(j) is not a variable, but an operation
+                    // In this case, we first need to process that and put the value in a temporary variable,
+                    // and then we can use that temporary variable in the expression
+                    indexCounter = indexCounter + 1
+                    val tempId = getOrCreateFreshIdentifier(s"temp${indexCounter}", RealType)
+                    // First use createUnrolledLet to process the expression
+                    val () = println("tempId: " + tempId)
+                    val () = println("newId: " + newId)
+                    val () = println("inner Let: " + Let(newId, Variable(tempId), currLet))
+                    val () = println("lists(i)(j): " + lists(i)(j))
+                    val tempLet = createUnrolledLet(tempId, lists(i)(j), Let(newId, Variable(tempId), currLet))
+                    val () = println("tempLet: " + tempLet)
+                    tempLet match{
+                      case Let(i, v, b) => {
+                        currLet = Let(i, v, b)
+                      }
+                      case _ => {
+                        val () = println("ERROR: tempLet is not a Let")
+                        throw new Exception("ERROR: tempLet is not a Let")
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          currLet
         }
 
 
