@@ -592,45 +592,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       }  
     )
   
-  def createLetExpr(id: String, opr: Any, t1: Expr, t2: Expr, body: Expr): Expr = {
-    // if the opr is Plus, Minus, Times, Division, then we'll call createLetExprTwo
-    // if the opr is Sin, Cos, Tan, then we'll call createLetExprOne
-
-    opr match {
-      case Plus => {
-        createLetExprTwo(id, Plus, t1, t2, body)
-      }
-      case Minus => {
-        createLetExprTwo(id, Minus, t1, t2, body)
-      }
-      case Times => {
-        createLetExprTwo(id, Times, t1, t2, body)
-      }
-      case Division => {
-        createLetExprTwo(id, Division, t1, t2, body)
-      }
-      case Sin => {
-        createLetExprOne(id, Sin, t1, body)
-      }
-      case Cos => {
-        createLetExprOne(id, Cos, t1, body)
-      }
-      case Tan => {
-        createLetExprOne(id, Tan, t1, body)
-      }
-      case UMinus => {
-        createLetExprOne(id, UMinus, t1, body)
-      }
-      case _ => {
-        val () = println("ERROR: opr is not supported")
-        val () = println("opr: " + opr)
-        t1
-      }
-    }
-  }
-
   def createLetExprTwo(id: String, opr: (Expr, Expr) => Expr, t1: Expr, t2: Expr, body: Expr): Expr = {
-    var processed_body = body
+    var earlyReturnBody = body
     var t1Id = ""
     var t2Id = ""
     try{
@@ -642,25 +605,24 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         try{
           t2Id = findOrCreateIndex(t2)
           // only t1 is processed
-          val newLet1 = rec(t1)
-          val () = println("t1: " + t1)
-          val () = println("t2: " + t2)
-          val () = println("rec(t1): " + newLet1)
-          throw new Exception("ERROR: t1 is not supported")
+
+          indexCounter = indexCounter + 1
+          val newId = getOrCreateFreshIdentifier(s"temp${indexCounter}", t1.getType)
+          val idIdentifier = getOrCreateFreshIdentifier(id, RealType)
+
+          val newLet = Let(newId, t1, Let(idIdentifier, opr(Variable(newId), t2), body))
+          return rec(newLet)
         }
         catch{
           case e: Exception => {
-            // need to process both
-            // just use rec
-            val newLet1 = rec(t1)
-            val newLet2 = rec(t2)
-            val () = println("t1: " + t1)
-            val () = println("t2: " + t2)
-            val () = println("rec(t1): " + newLet1)
-            val () = println("rec(t2): " + newLet2)
-            throw new Exception("ERROR: Both t1 and t2 are not supported")
-            // we will add these definitions to the body
-            // new body is newLet1(newLet2(body))
+            indexCounter = indexCounter + 1
+            val newId1 = getOrCreateFreshIdentifier(s"temp${indexCounter}", t1.getType)
+            indexCounter = indexCounter + 1
+            val newId2 = getOrCreateFreshIdentifier(s"temp${indexCounter}", t2.getType)
+            val idIdentifier = getOrCreateFreshIdentifier(id, RealType)
+
+            val newLet = Let(newId1, t1, Let(newId2, t2, Let(idIdentifier, opr(Variable(newId1), Variable(newId2)), body)))
+            return rec(newLet)
           }
         }
       }
@@ -676,16 +638,13 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         // we need a random identifier again for t2
         indexCounter = indexCounter + 1
         val newId = getOrCreateFreshIdentifier(s"temp${indexCounter}", t1.getType)
-        // processed_body = createUnrolledLet(newId, t2, body)
-        processed_body = Let(newId, t2, body)
-        t2Id = newId.name
-        val () = println("t1: " + t1)
-        val () = println("t2: " + t2)
-        val () = println("rec(t2): " + processed_body)
+        val idIdentifier = getOrCreateFreshIdentifier(id, RealType)
 
+        // I guess we can create a new Let here and send that to rec, and finish the execution here
+        val newLet = Let(newId, t2, Let(idIdentifier, opr(t1, Variable(newId)), body))
+        return rec(newLet)
       }
     }
-    
     if(isMatrix(t1) && isMatrix(t2)){
       // These identifiers *may* be different then the ones in findOrCreateIndex, not sure
       val t1Identifier: Identifier = t1 match { 
@@ -713,7 +672,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         val () = println("opr: " + opr)
       }
       // id_row_col
-      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0_0", RealType))), rec(processed_body))
+      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0_0", RealType))), rec(body))
       for(i <- 0 to t1RowSize - 1){
         for(j <- 0 to t1ColSize - 1){
           if(i == 0 && j == 0){
@@ -744,7 +703,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         val () = println("opr: " + opr)
       }
       // id_row_col
-      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(processed_body))
+      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(body))
       for(i <- 0 to t1RowSize - 1){
         for(j <- 0 to t1ColSize - 1){
           if(i == 0 && j == 0){
@@ -773,7 +732,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       }
       var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0", RealType), opr(
         Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), 
-        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(processed_body))
+        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(body))
       for(j <- 1 to t1Size - 1){
           val newId = getOrCreateFreshIdentifier(s"${id}_$j", RealType)
           val newLet = Let(newId, opr(
@@ -787,7 +746,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       val size = getDSSize(t1).head
       var currLet = Let(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType), 
         opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), 
-            Variable(getOrCreateFreshIdentifier(t2Id, RealType))), rec(processed_body))
+            Variable(getOrCreateFreshIdentifier(t2Id, RealType))), rec(body))
       for(j <- 1 to size - 1){
           val newId = getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType)
           val newLet = Let(newId, opr(
@@ -801,7 +760,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       val size = getDSSize(t2).head
       var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0", RealType), opr(
         Variable(getOrCreateFreshIdentifier(t1Id, RealType)), // the other element can be a vector or matrix element that needs to be processed
-        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(processed_body))
+        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(body))
       for(j <- 1 to size - 1){
           val newId = getOrCreateFreshIdentifier(s"${id}_$j", RealType)
           val newLet = Let(newId, opr(
@@ -815,12 +774,25 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       // there may be some Vector or Matrix elements in t1 and t2. And we still need to process them to convert the names to {vector_name}_{index}
       Let(getOrCreateFreshIdentifier(s"${id}", RealType), opr(
         Variable(getOrCreateFreshIdentifier(s"${t1Id}", RealType)), 
-        Variable(getOrCreateFreshIdentifier(s"${t2Id}", RealType))), rec(processed_body))
+        Variable(getOrCreateFreshIdentifier(s"${t2Id}", RealType))), rec(body))
     }
   }
 
   def createLetExprOne(id: String, opr: (Expr) => Expr, t1: Expr, body: Expr): Expr = {
-    val t1Id = findOrCreateIndex(t1)
+    var t1Id = ""
+    try{
+      t1Id = findOrCreateIndex(t1)
+    }
+    catch{
+      case e: Exception => {
+        indexCounter = indexCounter + 1
+        val newId = getOrCreateFreshIdentifier(s"temp${indexCounter}", t1.getType)
+        val idIdentifier = getOrCreateFreshIdentifier(id, RealType)
+
+        val newLet = Let(newId, t1, Let(idIdentifier, opr(Variable(newId)), body))
+        return rec(newLet)
+      }
+    }
     if(isVector(t1)){
       val t1Size = getDSSize(t1).head
       var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType))), rec(body))
@@ -958,28 +930,28 @@ object ArithmeticUnrollPhase extends DaisyPhase {
               val () = println("v: " + v)
               v
           }
-          createLetExpr(id.name, Times, t1, t2, b)
+          createLetExprTwo(id.name, Times, t1, t2, b)
         }
         case Plus(t1, t2) => {
-          createLetExpr(id.name, Plus, t1, t2, b)
+          createLetExprTwo(id.name, Plus, t1, t2, b)
         }
         case Division(t1, t2) => {
-          createLetExpr(id.name, Division, t1, t2, b)
+          createLetExprTwo(id.name, Division, t1, t2, b)
         }
         case Minus(t1, t2) => {
-          createLetExpr(id.name, Minus, t1, t2, b)
+          createLetExprTwo(id.name, Minus, t1, t2, b)
         }
         case Sin(e) => {
-          createLetExpr(id.name, Sin, e, e, b)
+          createLetExprOne(id.name, Sin, e, b)
         }
         case Cos(e) => {
-          createLetExpr(id.name, Cos, e, e, b)
+          createLetExprOne(id.name, Cos, e, b)
         }
         case UMinus(e) => {
           val () = println("Uminus b: " + b)
           val () = println("Uminus e: " + e)
           val () = println("Uminus id: " + id)
-          createLetExpr(id.name, UMinus, e, e, b)
+          createLetExprOne(id.name, UMinus, e, b)
         }
 
         // this just means that it is already unrolled
