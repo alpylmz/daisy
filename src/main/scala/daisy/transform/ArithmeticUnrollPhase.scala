@@ -359,8 +359,61 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         getDSSize(e)
       }
 
+      case VectorFromList(list, size) => {
+        Seq(size)
+      }
+
       case MatrixFromLists(lists, numRows, numCols) => {
         Seq(numRows, numCols)
+      }
+
+      case CrossProduct(lhs, rhs) => {
+        // both must be matrices for now, vectors are not supported
+        if(isVector(lhs) && isVector(rhs)){
+          val () = println("ERROR: CrossProduct is not supported for vectors")
+          Seq()
+        }
+        else if(isMatrix(lhs) && isMatrix(rhs)){
+          val lhsSize = getDSSize(lhs)
+          val rhsSize = getDSSize(rhs)
+
+          // matrix multiplication
+          val lhsRowSize = lhsSize.head
+          val lhsColSize = lhsSize(1)
+          val rhsRowSize = rhsSize.head
+          val rhsColSize = rhsSize(1)
+          // check size
+          if(lhsColSize != rhsRowSize){
+            val () = println("ERROR: lhsColSize and rhsRowSize should be the same")
+            throw new Exception("ERROR: lhsColSize and rhsRowSize should be the same")
+            Seq()
+          }
+          Seq(lhsRowSize, rhsColSize)
+        }
+        // matrix times vector is also supported
+        else if(isMatrix(lhs) && isVector(rhs)){
+          val lhsSize = getDSSize(lhs)
+          val rhsSize = getDSSize(rhs).head
+
+          // matrix multiplication
+          val lhsRowSize = lhsSize.head
+          val lhsColSize = lhsSize(1)
+          // check size
+          if(lhsColSize != rhsSize){
+            val () = println("ERROR: lhsColSize and rhsSize should be the same")
+            val () = println("lhs: " + lhs)
+            val () = println("rhs: " + rhs)
+            val () = println("lhsSize: " + lhsSize)
+            val () = println("rhsSize: " + rhsSize)
+            throw new Exception("ERROR: lhsColSize and rhsSize should be the same")
+            Seq()
+          }
+          Seq(lhsRowSize)
+        }
+        else{
+          val () = println("ERROR: CrossProduct is only supported for matrices")
+          Seq()
+        }
       }
 
       case _ => {
@@ -529,7 +582,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
    */
   def unrollAll(fnc: Expr, dsaRangeMap: Map[Expr, DSAbstraction], prec: Precision):
   Expr = {
-    var addedIds: Map[(Expr, Int), Identifier] = Map()
+    // First add the parameters to the freshIdentifierList
     // TODO: get rid of dsaRangeMap dependency here
     val _ = dsaRangeMap.map(x =>
       x._1 match {
@@ -566,10 +619,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         createLetExprOne(id, Tan, t1, body)
       }
       case UMinus => {
-        val () = println("createLetExpr: UMinus")
-        val () = println("id: " + id)
-        val () = println("t1: " + t1)
-        val () = println("body: " + body)
         createLetExprOne(id, UMinus, t1, body)
       }
       case _ => {
@@ -581,8 +630,62 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   }
 
   def createLetExprTwo(id: String, opr: (Expr, Expr) => Expr, t1: Expr, t2: Expr, body: Expr): Expr = {
-    val t1Id = findOrCreateIndex(t1)
-    val t2Id = findOrCreateIndex(t2)
+    var processed_body = body
+    var t1Id = ""
+    var t2Id = ""
+    try{
+      t1Id = findOrCreateIndex(t1)
+    }
+    catch{
+      case e: Exception => {
+        // check if we further need t2
+        try{
+          t2Id = findOrCreateIndex(t2)
+          // only t1 is processed
+          val newLet1 = rec(t1)
+          val () = println("t1: " + t1)
+          val () = println("t2: " + t2)
+          val () = println("rec(t1): " + newLet1)
+          throw new Exception("ERROR: t1 is not supported")
+        }
+        catch{
+          case e: Exception => {
+            // need to process both
+            // just use rec
+            val newLet1 = rec(t1)
+            val newLet2 = rec(t2)
+            val () = println("t1: " + t1)
+            val () = println("t2: " + t2)
+            val () = println("rec(t1): " + newLet1)
+            val () = println("rec(t2): " + newLet2)
+            throw new Exception("ERROR: Both t1 and t2 are not supported")
+            // we will add these definitions to the body
+            // new body is newLet1(newLet2(body))
+          }
+        }
+      }
+    }
+    try{
+      t2Id = findOrCreateIndex(t2)
+    }
+    catch{
+      case e: Exception => {
+        // only t1 is processed, the new let is 
+        // v is t2
+        // b is body
+        // we need a random identifier again for t2
+        indexCounter = indexCounter + 1
+        val newId = getOrCreateFreshIdentifier(s"temp${indexCounter}", t1.getType)
+        // processed_body = createUnrolledLet(newId, t2, body)
+        processed_body = Let(newId, t2, body)
+        t2Id = newId.name
+        val () = println("t1: " + t1)
+        val () = println("t2: " + t2)
+        val () = println("rec(t2): " + processed_body)
+
+      }
+    }
+    
     if(isMatrix(t1) && isMatrix(t2)){
       // These identifiers *may* be different then the ones in findOrCreateIndex, not sure
       val t1Identifier: Identifier = t1 match { 
@@ -610,7 +713,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         val () = println("opr: " + opr)
       }
       // id_row_col
-      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0_0", RealType))), rec(body))
+      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0_0", RealType))), rec(processed_body))
       for(i <- 0 to t1RowSize - 1){
         for(j <- 0 to t1ColSize - 1){
           if(i == 0 && j == 0){
@@ -620,6 +723,37 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           else{
             val newId = getOrCreateFreshIdentifier(s"${id}_${i}_$j", RealType)
             val newLet = Let(newId, opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_${i}_$j", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_${i}_$j", RealType))), currLet)
+            currLet = newLet
+          }
+        }
+      }
+      currLet
+    }
+    else if(isMatrix(t1) && isVector(t2)){
+      val t1Size: Seq[Int] = getDSSize(t1)
+      val t1RowSize = t1Size.head
+      val t1ColSize = t1Size(1)
+      val t2Size = getDSSize(t2).head
+      if(t1ColSize != t2Size){
+        val () = println("ERROR: t1 and t2 sizes are not the same")
+        val () = println("t1RowSize: " + t1RowSize)
+        val () = println("t1ColSize: " + t1ColSize)
+        val () = println("t2Size: " + t2Size)
+        val () = println("t1: " + t1)
+        val () = println("t2: " + t2)
+        val () = println("opr: " + opr)
+      }
+      // id_row_col
+      var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(processed_body))
+      for(i <- 0 to t1RowSize - 1){
+        for(j <- 0 to t1ColSize - 1){
+          if(i == 0 && j == 0){
+            // we already did this
+            ()
+          }
+          else{
+            val newId = getOrCreateFreshIdentifier(s"${id}_${i}_$j", RealType)
+            val newLet = Let(newId, opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_${i}_$j", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_$j", RealType))), currLet)
             currLet = newLet
           }
         }
@@ -639,7 +773,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       }
       var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0", RealType), opr(
         Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), 
-        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(body))
+        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(processed_body))
       for(j <- 1 to t1Size - 1){
           val newId = getOrCreateFreshIdentifier(s"${id}_$j", RealType)
           val newLet = Let(newId, opr(
@@ -653,7 +787,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       val size = getDSSize(t1).head
       var currLet = Let(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType), 
         opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0", RealType)), 
-            Variable(getOrCreateFreshIdentifier(t2Id, RealType))), rec(body))
+            Variable(getOrCreateFreshIdentifier(t2Id, RealType))), rec(processed_body))
       for(j <- 1 to size - 1){
           val newId = getOrCreateFreshIdentifier(s"${t1Id}_$j", RealType)
           val newLet = Let(newId, opr(
@@ -667,7 +801,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       val size = getDSSize(t2).head
       var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0", RealType), opr(
         Variable(getOrCreateFreshIdentifier(t1Id, RealType)), // the other element can be a vector or matrix element that needs to be processed
-        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(body))
+        Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(processed_body))
       for(j <- 1 to size - 1){
           val newId = getOrCreateFreshIdentifier(s"${id}_$j", RealType)
           val newLet = Let(newId, opr(
@@ -681,7 +815,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       // there may be some Vector or Matrix elements in t1 and t2. And we still need to process them to convert the names to {vector_name}_{index}
       Let(getOrCreateFreshIdentifier(s"${id}", RealType), opr(
         Variable(getOrCreateFreshIdentifier(s"${t1Id}", RealType)), 
-        Variable(getOrCreateFreshIdentifier(s"${t2Id}", RealType))), rec(body))
+        Variable(getOrCreateFreshIdentifier(s"${t2Id}", RealType))), rec(processed_body))
     }
   }
 
@@ -720,10 +854,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     }
     else{ // TODO: CHECK
       // there may be some Vector or Matrix elements in t1 and t2. And we still need to process them to convert the names to {vector_name}_{index}
-      val () = println("createLetExprOne body: " + body)
-      val () = println("createLetExprOne t1: " + t1)
-      val () = println("createLetExprOne id: " + id)
-      val () = println("rec(body): " + rec(body))
       Let(getOrCreateFreshIdentifier(s"${id}", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}", RealType))), rec(body))
     }
   }
@@ -740,13 +870,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 createUnrolledLet(i, v, b)
             }
             else{
-                val () = println("rec got e: " + e)
-                val () = println("i: " + i)
-                val () = println("v: " + v)
-                val () = println("b: " + b)
                 sizeMap = sizeMap + (i -> Seq(1))
                 val res = createUnrolledLet(i, v, b)
-                val () = println("rec res: " + res)
                 res
             } 
         }
@@ -827,9 +952,9 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     // i size is equal to v size
     v match {
         case Times(t1, t2) => {
-          if(isVector(t1) == isVector(t2)){
+          if(isVector(t1) == true && isVector(t2) == true){
               val () = println("This shouldn't happen!")
-              val () = println("ERROR: Both are vectors or both are not vectors, not supported")
+              val () = println("ERROR: Both are vectors, not supported")
               val () = println("v: " + v)
               v
           }
@@ -928,6 +1053,37 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           Let(getOrCreateFreshIdentifier(s"${mName}_${rowInd}_$colInd", RealType), v, b)
         }
 
+        case VectorElement(expr, index) => {
+          val vName = expr match{
+            case Variable(id) => id
+            case _ => {
+                val () = println("ERROR: Not a Variable")
+                ""
+            }
+          }
+          val indexInt = index match{
+            case IntegerLiteral(i) => i
+            case Int32Literal(i) => i
+            case _ => {
+                val () = println("ERROR: Not an IntegerLiteral")
+                0
+            }
+          }
+          Let(getOrCreateFreshIdentifier(s"${vName}_$indexInt", RealType), v, b)
+        }
+
+        case VectorFromList(list, size) => {
+          val id_str = id.name
+          val vSize = size
+          var currLet = Let(getOrCreateFreshIdentifier(s"${id_str}_0", RealType), rec(list.head), rec(b))
+          for(j <- 1 to vSize - 1){
+            val newId = getOrCreateFreshIdentifier(s"${id_str}_$j", RealType)
+            val newLet = Let(newId, rec(list(j)), currLet)
+            currLet = newLet
+          }
+          currLet
+        }
+
         // write every element as another variable 
         case MatrixFromLists(lists, numRows, numCols) => {
           var currLet = Let(getOrCreateFreshIdentifier(s"${id.name}_0_0", RealType), rec(lists.head.head), rec(b))
@@ -950,12 +1106,7 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                     indexCounter = indexCounter + 1
                     val tempId = getOrCreateFreshIdentifier(s"temp${indexCounter}", RealType)
                     // First use createUnrolledLet to process the expression
-                    val () = println("tempId: " + tempId)
-                    val () = println("newId: " + newId)
-                    val () = println("inner Let: " + Let(newId, Variable(tempId), currLet))
-                    val () = println("lists(i)(j): " + lists(i)(j))
                     val tempLet = createUnrolledLet(tempId, lists(i)(j), Let(newId, Variable(tempId), currLet))
-                    val () = println("tempLet: " + tempLet)
                     tempLet match{
                       case Let(i, v, b) => {
                         currLet = Let(i, v, b)
@@ -971,6 +1122,161 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             }
           }
           currLet
+        }
+
+        case CrossProduct(lhs, rhs) => {
+          // vector cross product is not supported yet
+          if(isVector(lhs) && isVector(rhs)){
+            val () = println("ERROR: CrossProduct is not supported for vectors")
+            v
+          }
+          else if(isMatrix(lhs) && isMatrix(rhs)){
+            val lhsSize = getDSSize(lhs)
+            val rhsSize = getDSSize(rhs)
+            val lhsRowSize = lhsSize.head
+            val lhsColSize = lhsSize(1)
+            val rhsRowSize = rhsSize.head
+            val rhsColSize = rhsSize(1)
+            if(lhsColSize != rhsRowSize){
+              val () = println("ERROR: lhsColSize and rhsRowSize should be the same")
+              throw new Exception("ERROR: lhsColSize and rhsRowSize should be the same")
+              v
+            }
+            // since we are in a functional language, I'll represent everything as clear as possible
+            // every temporary variable will be named as {lhs}_{rhs}_{index+1} and index will be increased by 1
+            // please remind yourself that this is a matrix multiplication
+            // we need to multiply every row of lhs with every column of rhs
+
+            var newLet = Let(
+              getOrCreateFreshIdentifier(s"${id.name}_0_0", RealType),
+              Plus(
+                Times(
+                  Variable(getOrCreateFreshIdentifier(s"${lhs}_0_0", RealType)),
+                  Variable(getOrCreateFreshIdentifier(s"${rhs}_0_0", RealType))
+                ),
+                Plus(
+                  Times(
+                    Variable(getOrCreateFreshIdentifier(s"${lhs}_0_1", RealType)),
+                    Variable(getOrCreateFreshIdentifier(s"${rhs}_1_0", RealType))
+                  ),
+                  Times(
+                    Variable(getOrCreateFreshIdentifier(s"${lhs}_0_2", RealType)),
+                    Variable(getOrCreateFreshIdentifier(s"${rhs}_2_0", RealType))
+                  )
+                )
+              ),
+              rec(b)
+            )
+            // continue this in every element
+            for(i <- 0 to lhsRowSize - 1){
+              for(j <- 0 to rhsColSize - 1){
+                if(i == 0 && j == 0){
+                  // we already did this
+                  ()
+                }
+                else{
+                  val newId = getOrCreateFreshIdentifier(s"${id.name}_${i}_$j", RealType)
+                  val tempLet = Let(
+                    newId,
+                    Plus(
+                      Times(
+                        Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_0", RealType)),
+                        Variable(getOrCreateFreshIdentifier(s"${rhs}_0_$j", RealType))
+                      ),
+                      Plus(
+                        Times(
+                          Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_1", RealType)),
+                          Variable(getOrCreateFreshIdentifier(s"${rhs}_1_$j", RealType))
+                        ),
+                        Times(
+                          Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_2", RealType)),
+                          Variable(getOrCreateFreshIdentifier(s"${rhs}_2_$j", RealType))
+                        )
+                      )
+                    ),
+                    newLet
+                  )
+                  newLet = tempLet
+                }
+              }
+            }
+            val () = println("newLet: " + newLet)
+            newLet
+
+          }
+          // matrix times vector is also supported
+          else if(isMatrix(lhs) && isVector(rhs)){
+            val lhsSize = getDSSize(lhs)
+            val rhsSize = getDSSize(rhs).head
+            val lhsRowSize = lhsSize.head
+            val lhsColSize = lhsSize(1)
+            if(lhsColSize != rhsSize){
+              val () = println("ERROR: lhsColSize and rhsSize should be the same")
+              throw new Exception("ERROR: lhsColSize and rhsSize should be the same")
+              v
+            }
+            // since we are in a functional language, I'll represent everything as clear as possible
+            // every temporary variable will be named as {lhs}_{rhs}_{index+1} and index will be increased by 1
+            // please remind yourself that this is a matrix multiplication
+            // we need to multiply every row of lhs with every column of rhs
+
+            var newLet = Let(
+              getOrCreateFreshIdentifier(s"${id.name}_0", RealType),
+              Plus(
+                Times(
+                  Variable(getOrCreateFreshIdentifier(s"${lhs}_0_0", RealType)),
+                  Variable(getOrCreateFreshIdentifier(s"${rhs}_0", RealType))
+                ),
+                Plus(
+                  Times(
+                    Variable(getOrCreateFreshIdentifier(s"${lhs}_0_1", RealType)),
+                    Variable(getOrCreateFreshIdentifier(s"${rhs}_1", RealType))
+                  ),
+                  Times(
+                    Variable(getOrCreateFreshIdentifier(s"${lhs}_0_2", RealType)),
+                    Variable(getOrCreateFreshIdentifier(s"${rhs}_2", RealType))
+                  )
+                )
+              ),
+              rec(b)
+            )
+            // continue this in every element
+            for(i <- 0 to lhsRowSize - 1){
+              if(i == 0){
+                ()
+              }
+              else{
+                val newId = getOrCreateFreshIdentifier(s"${id.name}_$i", RealType)
+                val tempLet = Let(
+                  newId,
+                  Plus(
+                    Times(
+                      Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_0", RealType)),
+                      Variable(getOrCreateFreshIdentifier(s"${rhs}_0", RealType))
+                    ),
+                    Plus(
+                      Times(
+                        Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_1", RealType)),
+                        Variable(getOrCreateFreshIdentifier(s"${rhs}_1", RealType))
+                      ),
+                      Times(
+                        Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_2", RealType)),
+                        Variable(getOrCreateFreshIdentifier(s"${rhs}_2", RealType))
+                      )
+                    )
+                  ),
+                  newLet
+                )
+                newLet = tempLet
+              }
+            }
+            newLet
+          }
+          else{
+            val () = println("ERROR: CrossProduct is only supported for matrices")
+            throw new Exception("ERROR: CrossProduct is only supported for matrices")
+            v
+          }
         }
 
 
