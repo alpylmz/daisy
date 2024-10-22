@@ -830,10 +830,10 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       // add the size of id to the sizeMap
       // TODO: For some reason sometimes the sizeMap shows wrong size
       // As a hotfix, I'll remove id first, and readd it
-      sizeMap = sizeMap - getOrCreateFreshIdentifier(id, RealType)
-      sizeMap = sizeMap + (getOrCreateFreshIdentifier(id, RealType) -> Seq(t1RowSize, t1ColSize))
-      val () = println("id: " + id)
-      val () = println("sizeMap: " + sizeMap)
+      //sizeMap = sizeMap - getOrCreateFreshIdentifier(id, RealType)
+      //sizeMap = sizeMap + (getOrCreateFreshIdentifier(id, RealType) -> Seq(t1RowSize, t1ColSize))
+      //val () = println("id: " + id)
+      //val () = println("sizeMap: " + sizeMap)
       var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(
         Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), 
         Variable(getOrCreateFreshIdentifier(t2Id, RealType))), rec(body))
@@ -1264,6 +1264,8 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             val lhsColSize = lhsSize(1)
             val rhsRowSize = rhsSize.head
             val rhsColSize = rhsSize(1)
+            val () = println("lhsSize: " + lhsSize)
+            val () = println("rhsSize: " + rhsSize)
             if(lhsColSize != rhsRowSize){
               val () = println("ERROR: lhsColSize and rhsRowSize should be the same")
               val () = println("lhsColSize: " + lhsColSize)
@@ -1278,60 +1280,41 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             // please remind yourself that this is a matrix multiplication
             // we need to multiply every row of lhs with every column of rhs
 
-            var newLet = Let(
+            var currLet = Let(
               getOrCreateFreshIdentifier(s"${id.name}_0_0", RealType),
-              Plus(
-                Times(
-                  Variable(getOrCreateFreshIdentifier(s"${lhs}_0_0", RealType)),
-                  Variable(getOrCreateFreshIdentifier(s"${rhs}_0_0", RealType))
-                ),
-                Plus(
+              (0 until lhsColSize).map(j =>
                   Times(
-                    Variable(getOrCreateFreshIdentifier(s"${lhs}_0_1", RealType)),
-                    Variable(getOrCreateFreshIdentifier(s"${rhs}_1_0", RealType))
-                  ),
-                  Times(
-                    Variable(getOrCreateFreshIdentifier(s"${lhs}_0_2", RealType)),
-                    Variable(getOrCreateFreshIdentifier(s"${rhs}_2_0", RealType)) // TODO: 
+                      Variable(getOrCreateFreshIdentifier(s"${lhs}_0_$j", RealType)),
+                      Variable(getOrCreateFreshIdentifier(s"${rhs}_${j}_0", RealType)) // 0th column of rhs
                   )
-                )
-              ),
+              ).reduce(Plus),
               rec(b)
-            )
+          )
             // continue this in every element
-            for(i <- 0 to lhsRowSize - 1){
-              for(j <- 0 to rhsColSize - 1){
-                if(i == 0 && j == 0){
-                  // we already did this
-                  ()
-                }
-                else{
-                  val newId = getOrCreateFreshIdentifier(s"${id.name}_${i}_$j", RealType)
-                  val tempLet = Let(
-                    newId,
-                    Plus(
-                      Times(
-                        Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_0", RealType)),
-                        Variable(getOrCreateFreshIdentifier(s"${rhs}_0_$j", RealType))
-                      ),
-                      Plus(
-                        Times(
-                          Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_1", RealType)),
-                          Variable(getOrCreateFreshIdentifier(s"${rhs}_1_$j", RealType))
-                        ),
-                        Times(
-                          Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_2", RealType)),
-                          Variable(getOrCreateFreshIdentifier(s"${rhs}_2_$j", RealType))// TODO: 
-                        )
+            for(i <- 0 until lhsRowSize) {
+              for(j <- 0 until rhsColSize) {
+                  // Skip the first element which is already computed
+                  if(i == 0 && j == 0) {
+                      ()
+                  } else {
+                      val newId = getOrCreateFreshIdentifier(s"${id.name}_${i}_$j", RealType)
+                      
+                      // Compute the dot product of row i of lhs and column j of rhs
+                      val newLet = Let(
+                          newId,
+                          (0 until lhsColSize).map(k =>
+                              Times(
+                                  Variable(getOrCreateFreshIdentifier(s"${lhs}_${i}_$k", RealType)), // ith row of lhs
+                                  Variable(getOrCreateFreshIdentifier(s"${rhs}_${k}_$j", RealType))  // jth column of rhs
+                              )
+                          ).reduce(Plus),
+                          currLet
                       )
-                    ),
-                    newLet
-                  )
-                  newLet = tempLet
-                }
+                      currLet = newLet
+                  }
               }
-            }
-            newLet
+          }
+            currLet
 
           }
           // matrix times vector is also supported
