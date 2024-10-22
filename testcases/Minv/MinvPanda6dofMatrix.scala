@@ -240,22 +240,35 @@ object MinvMatrix {
         ))
 
         val Do_temp2_4_t = Do_temp2_4.transpose()
-        val Do_temp2_col1: Vector = Do_temp2_4_t.row(0)
-        val Do_temp2_col2: Vector = Do_temp2_4_t.row(1)
-        val Do_temp2_col3: Vector = Do_temp2_4_t.row(2)
+        val Do_temp2_4_col1: Vector = Do_temp2_4_t.row(0)
+        val Do_temp2_4_col2: Vector = Do_temp2_4_t.row(1)
+        val Do_temp2_4_col3: Vector = Do_temp2_4_t.row(2)
 
         val Bo_final_4_col1 = Co_final_4.row(0)
         val Bo_final_4_col2 = Co_final_4.row(1)
         val Bo_final_4_col3 = Co_final_4.row(2)
 
-        val Do_temp3_col1 = oMi_translation_5.x(Bo_final_4_col1)
-        val Do_temp3_col2 = oMi_translation_5.x(Bo_final_4_col2)
-        val Do_temp3_col3 = oMi_translation_5.x(Bo_final_4_col3)
+        val Do_temp3_4_col1 = oMi_translation_5.x(Bo_final_4_col1)
+        val Do_temp3_4_col2 = oMi_translation_5.x(Bo_final_4_col2)
+        val Do_temp3_4_col3 = oMi_translation_5.x(Bo_final_4_col3)
+
+        val Do_temp4_4_col1 = Do_temp2_4_col1 + Do_temp3_4_col1
+        val Do_temp4_4_col2 = Do_temp2_4_col2 + Do_temp3_4_col2
+        val Do_temp4_4_col3 = Do_temp2_4_col3 + Do_temp3_4_col3
 
         val Do_final_4 = Matrix(List(
-            List(Do_temp2_col1.at(0), Do_temp2_col2.at(0), Do_temp2_col3.at(0)),
-            List(Do_temp2_col1.at(1), Do_temp2_col2.at(1), Do_temp2_col3.at(1)),
-            List(Do_temp2_col1.at(2), Do_temp2_col2.at(2), Do_temp2_col3.at(2))
+            List(Do_temp4_4_col1.at(0), Do_temp4_4_col2.at(0), Do_temp4_4_col3.at(0)),
+            List(Do_temp4_4_col1.at(1), Do_temp4_4_col2.at(1), Do_temp4_4_col3.at(1)),
+            List(Do_temp4_4_col1.at(2), Do_temp4_4_col2.at(2), Do_temp4_4_col3.at(2))
+        ))
+
+        val Ia_4_add = Matrix(List(
+            List(Ao_final_4.at(0, 0), Ao_final_4.at(0, 1), Ao_final_4.at(0, 2), Co_final_4.at(0, 0), Co_final_4.at(0, 1), Co_final_4.at(0, 2)),
+            List(Ao_final_4.at(1, 0), Ao_final_4.at(1, 1), Ao_final_4.at(1, 2), Co_final_4.at(1, 0), Co_final_4.at(1, 1), Co_final_4.at(1, 2)),
+            List(Ao_final_4.at(2, 0), Ao_final_4.at(2, 1), Ao_final_4.at(2, 2), Co_final_4.at(2, 0), Co_final_4.at(2, 1), Co_final_4.at(2, 2)),
+            List(Bo_final_4.at(0, 0), Bo_final_4.at(0, 1), Bo_final_4.at(0, 2), Do_final_4.at(0, 0), Do_final_4.at(0, 1), Do_final_4.at(0, 2)),
+            List(Bo_final_4.at(1, 0), Bo_final_4.at(1, 1), Bo_final_4.at(1, 2), Do_final_4.at(1, 0), Do_final_4.at(1, 1), Do_final_4.at(1, 2)),
+            List(Bo_final_4.at(2, 0), Bo_final_4.at(2, 1), Bo_final_4.at(2, 2), Do_final_4.at(2, 0), Do_final_4.at(2, 1), Do_final_4.at(2, 2))
         ))
 
         // Ia_4 += these matrices
@@ -265,14 +278,16 @@ object MinvMatrix {
         //    [0.0, 0.0471217, 0.0503435, 0.0394276, -0.00151524, -0.00460025], 
         //    [-0.0471217, 0.0, 0.0146537, -0.00151524, 0.0314604, 0.00216405], 
         //    [-0.0503435, -0.0146537, 0.0, -0.00460025, 0.00216405, 0.0108695]]
-        val Ia_4 = Matrix( List(
-            List(1.22595 + Ao_final_4.at(0,0), 0.0, 0.0, -0.0, -0.0471217, -0.0503435),
+        val Ia_4_predec = Matrix(List(
+            List(1.22595, 0.0, 0.0, -0.0, -0.0471217, -0.0503435),
             List(0.0, 1.22595, 0.0, 0.0471217, -0.0, -0.0146537),
             List(0.0, 0.0, 1.22595, 0.0503435, 0.0146537, -0.0),
             List(0.0, 0.0471217, 0.0503435, 0.0394276, -0.00151524, -0.00460025),
             List(-0.0471217, 0.0, 0.0146537, -0.00151524, 0.0314604, 0.00216405),
             List(-0.0503435, -0.0146537, 0.0, -0.00460025, 0.00216405, 0.0108695)
         ))
+
+        val Ia_final_4 = Ia_4_predec + Ia_4_add
 
 
 
