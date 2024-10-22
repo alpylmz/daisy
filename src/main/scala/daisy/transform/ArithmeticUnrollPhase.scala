@@ -373,8 +373,17 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       case CrossProduct(lhs, rhs) => {
         // both must be matrices for now, vectors are not supported
         if(isVector(lhs) && isVector(rhs)){
-          val () = println("ERROR: CrossProduct is not supported for vectors")
-          Seq()
+          val lhsSize = getDSSize(lhs).head
+          val rhsSize = getDSSize(rhs).head
+          if(lhsSize != 3){
+            val () = println("lhsSize: " + lhsSize)
+            throw new Exception("ERROR: lhsSize should be 3 in crossproduct")
+          }
+          if(rhsSize != 3){
+            val () = println("rhsSize: " + rhsSize)
+            throw new Exception("ERROR: rhsSize should be 3 in crossproduct")
+          }
+          Seq(3)
         }
         else if(isMatrix(lhs) && isMatrix(rhs)){
           val lhsSize = getDSSize(lhs)
@@ -461,6 +470,16 @@ object ArithmeticUnrollPhase extends DaisyPhase {
       // Sometimes happen
       case RealLiteral(_) => {
         Seq(1)
+      }
+
+      case SubMatrix(m, ind) => {
+        val from_indices = ind.head
+        val to_indices = ind(1)
+        val from_indices_1 = from_indices._1
+        val from_indices_2 = from_indices._2
+        val to_indices_1 = to_indices._1
+        val to_indices_2 = to_indices._2
+        Seq(to_indices_1, to_indices_2)
       }
 
       case _ => {
@@ -969,19 +988,13 @@ object ArithmeticUnrollPhase extends DaisyPhase {
                 // I am assuming that v is relatively simple
                 // It will simplify the code a lot
                 val vSize = getDSSize(v)
-                val () = println(s"adding ${i} ")
-                val () = println(s"size: ${vSize}")
                 sizeMap = sizeMap + (i -> vSize)
                 val res = createUnrolledLet(i, v, b)
-                val () = println("res: " + res)
                 res
             }
             else{
-              val () = println(s"adding ${i} ")
-                val () = println(s"size: 1")
                 sizeMap = sizeMap + (i -> Seq(1))
                 val res = createUnrolledLet(i, v, b)
-                val () = println("res: " + res)
                 res
             } 
         }
@@ -1253,9 +1266,62 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           val () = println("Detected CrossProduct")
           val () = println("lhs: " + lhs)
           val () = println("rhs: " + rhs)
-          if(isVector(lhs) && isVector(rhs)){
-            val () = println("ERROR: CrossProduct is not supported for vectors")
-            v
+          if (isVector(lhs) && isVector(rhs)) {
+            // Get the size of the vectors to ensure they are 3D
+            val lhsSize = getDSSize(lhs).head
+            val rhsSize = getDSSize(rhs).head
+
+            // Ensure both vectors are 3-dimensional
+            if (lhsSize != 3 || rhsSize != 3) {
+              val () = println("ERROR: CrossProduct is only supported for 3D vectors")
+              throw new Exception("ERROR: CrossProduct is only supported for 3D vectors")
+            }
+
+            // Compute the cross product of the two 3D vectors
+            val xComponent = Minus(
+              Times(
+                Variable(getOrCreateFreshIdentifier(s"${lhs}_1", RealType)), // lhs.y * rhs.z
+                Variable(getOrCreateFreshIdentifier(s"${rhs}_2", RealType))
+              ),
+              Times(
+                Variable(getOrCreateFreshIdentifier(s"${lhs}_2", RealType)), // lhs.z * rhs.y
+                Variable(getOrCreateFreshIdentifier(s"${rhs}_1", RealType))
+              )
+            )
+
+            val yComponent = Minus(
+              Times(
+                Variable(getOrCreateFreshIdentifier(s"${lhs}_2", RealType)), // lhs.z * rhs.x
+                Variable(getOrCreateFreshIdentifier(s"${rhs}_0", RealType))
+              ),
+              Times(
+                Variable(getOrCreateFreshIdentifier(s"${lhs}_0", RealType)), // lhs.x * rhs.z
+                Variable(getOrCreateFreshIdentifier(s"${rhs}_2", RealType))
+              )
+            )
+
+            val zComponent = Minus(
+              Times(
+                Variable(getOrCreateFreshIdentifier(s"${lhs}_0", RealType)), // lhs.x * rhs.y
+                Variable(getOrCreateFreshIdentifier(s"${rhs}_1", RealType))
+              ),
+              Times(
+                Variable(getOrCreateFreshIdentifier(s"${lhs}_1", RealType)), // lhs.y * rhs.x
+                Variable(getOrCreateFreshIdentifier(s"${rhs}_0", RealType))
+              )
+            )
+
+            // Return the result as a vector (3D)
+            Let(
+              getOrCreateFreshIdentifier(s"${id.name}_0", RealType), xComponent,
+              Let(
+                getOrCreateFreshIdentifier(s"${id.name}_1", RealType), yComponent,
+                Let(
+                  getOrCreateFreshIdentifier(s"${id.name}_2", RealType), zComponent,
+                  rec(b)
+                )
+              )
+            )
           }
           else if(isMatrix(lhs) && isMatrix(rhs)){
             val lhsSize = getDSSize(lhs)
@@ -1395,6 +1461,50 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             throw new Exception("ERROR: CrossProduct is only supported for matrices")
             v
           }
+        }
+        case SubMatrix(m, ind) => {
+          val id_str = id.name
+          val m_name = m match{
+            case Variable(id) => id
+            case _ => {
+                val () = println("ERROR: Not a Variable")
+                ""
+            }
+          }
+          val from_indices = ind.head
+          val to_indices = ind(1)
+          val from_indices_1 = from_indices._1
+          val from_indices_2 = from_indices._2
+          val to_indices_1 = to_indices._1
+          val to_indices_2 = to_indices._2
+          val rowSize = to_indices_1
+          val colSize = to_indices_2
+          var currLet = Let(getOrCreateFreshIdentifier(s"${id_str}_0_0", RealType), Variable(getOrCreateFreshIdentifier(s"${m_name}_${from_indices_1}_${from_indices_2}", RealType)), rec(b))
+          var ii = 0
+          var jj = 0
+          val () = println("from_indices: " + from_indices)
+          val () = println("to_indices: " + to_indices)
+          val () = println("from_indices_1 + to_indices_1: " + (from_indices_1 + to_indices_1))
+          val () = println("from_indices_2 + to_indices_2: " + (from_indices_2 + to_indices_2))
+          for(i <- from_indices_1 to (from_indices_1 + to_indices_1 - 1)){
+            jj = 0
+            val () = println("i: " + i)
+            for(j <- from_indices_2 to (from_indices_2 + to_indices_2 - 1)){
+              if(i == from_indices_1 && j == from_indices_2){
+                ()
+              }
+              else{
+                val () = println("j: " + j)
+                val newId = getOrCreateFreshIdentifier(s"${id_str}_${ii}_${jj}", RealType)
+                val newLet = Let(newId, Variable(getOrCreateFreshIdentifier(s"${m_name}_${i}_${j}", RealType)), currLet)
+                currLet = newLet
+              }
+              jj = jj + 1
+            }
+            ii = ii + 1
+          }
+          val () = println("Returning currLet: " + currLet)
+          currLet
         }
 
 

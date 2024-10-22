@@ -141,7 +141,7 @@ object MinvMatrix {
         )
 
         val oMi_rotation_5 = oMi_rotation_4.x(limi_rotation_5)
-        val oMi_translation_5 = oMi_translation_4
+        val oMi_translation_5: Vector = oMi_translation_4
 
         // pass 2
         //         //      [2.40208, 0.0, 0.0, -0.0, -0.0206546, 0.0688327], 
@@ -166,20 +166,117 @@ object MinvMatrix {
             List(0.000641928), 
             List(0.031751)
         ))
-        val U_5_vector: Vector = Ia_5_pred.row(5)
 
         val Dinv_5 = 1.0 / Ia_5_pred.at(5, 5)
 
         val UDinv_5: Matrix = U_5 * Dinv_5
 
-        val UDinv_5_t = UDinv_5.transpose()
+        val U_5_t = U_5.transpose()
 
-        val Ia_5_minus: Matrix = UDinv_5_t.x(U_5)
+        val Ia_5_minus: Matrix = UDinv_5.x(U_5_t)
         // need to convert this to matrix
         //val Ia_5_minus_matrix: Matrix = Matrix(
         //    List(Ia_5_minus.toList())
         //)
+        val Ia_5 = Ia_5_pred - Ia_5_minus
+
+        // Ia_4 += sth sth
+
+        // Ao is a 3x3 matrix, the upperside of Ia_5
+        val Ao_4 = Ia_5.slice(0, 0)(3, 3)
+        val Bo_4 = Ia_5.slice(0, 3)(3, 3)
+        val Co_4 = Ia_5.slice(3, 0)(3, 3)
+        val Do_4 = Ia_5.slice(3, 3)(3, 3)
+
+        val oMi_rotation_5_t = oMi_rotation_5.transpose()
+
+        val Ao_final_4_temp1 = oMi_rotation_5.x(Ao_4)
+        val Ao_final_4 = Ao_final_4_temp1.x(oMi_rotation_5_t)
+        val Bo_temp_4_temp1 = oMi_rotation_5.x(Bo_4)
+        val Bo_temp_4 = Bo_temp_4_temp1.x(oMi_rotation_5_t)
+        val Do_temp_4_temp1 = oMi_rotation_5.x(Do_4)
+        val Do_temp_4 = Do_temp_4_temp1.x(oMi_rotation_5_t)
+
+        val Do_temp_4_row1 = Do_temp_4.row(0)
+        val Do_temp_4_row2 = Do_temp_4.row(1)
+        val Do_temp_4_row3 = Do_temp_4.row(2)
+
+        val Bo_temp_4_t = Bo_temp_4.transpose()
+        val Bo_temp_4_col1: Vector = Bo_temp_4_t.row(0)
+        val Bo_temp_4_col2: Vector = Bo_temp_4_t.row(1)
+        val Bo_temp_4_col3: Vector = Bo_temp_4_t.row(2)
+
+        val Do_temp_4_row1_new1 = oMi_translation_5.x(Bo_temp_4_col1)
+        val Do_temp_4_row1_new = Do_temp_4_row1 + Do_temp_4_row1_new1
+        val Do_temp_4_row2_new1 = oMi_translation_5.x(Bo_temp_4_col2)
+        val Do_temp_4_row2_new = Do_temp_4_row2 + Do_temp_4_row2_new1
+        val Do_temp_4_row3_new1 = oMi_translation_5.x(Bo_temp_4_col3)
+        val Do_temp_4_row3_new = Do_temp_4_row3 + Do_temp_4_row3_new1
+
+        val Ao_final_4_t = Ao_final_4.transpose()
+        val Ao_final_4_col1: Vector = Ao_final_4_t.row(0)
+        val Ao_final_4_col2: Vector = Ao_final_4_t.row(1)
+        val Ao_final_4_col3: Vector = Ao_final_4_t.row(2)
         
+        val Co_temp_4_col1 = oMi_translation_5.x(Ao_final_4_col1)
+        val Co_temp_4_col2 = oMi_translation_5.x(Ao_final_4_col2)
+        val Co_temp_4_col3 = oMi_translation_5.x(Ao_final_4_col3)
+
+        // Cos appended and Bo_t added makes final Co
+        val Co_temp2_4 = Matrix(List(
+            List(Co_temp_4_col1.at(0), Co_temp_4_col2.at(0), Co_temp_4_col3.at(0)),
+            List(Co_temp_4_col1.at(1), Co_temp_4_col2.at(1), Co_temp_4_col3.at(1)),
+            List(Co_temp_4_col1.at(2), Co_temp_4_col2.at(2), Co_temp_4_col3.at(2))
+        ))
+        val Co_temp3_4 = Co_temp2_4.transpose()
+        val Co_final_4 = Co_temp3_4 + Bo_temp_4_t
+
+        val Bo_final_4 = Co_final_4.transpose()
+
+        val Do_temp2_4 = Matrix(List(
+            List(Do_temp_4_row1_new.at(0), Do_temp_4_row1_new.at(1), Do_temp_4_row1_new.at(2)),
+            List(Do_temp_4_row2_new.at(0), Do_temp_4_row2_new.at(1), Do_temp_4_row2_new.at(2)),
+            List(Do_temp_4_row3_new.at(0), Do_temp_4_row3_new.at(1), Do_temp_4_row3_new.at(2))
+        ))
+
+        val Do_temp2_4_t = Do_temp2_4.transpose()
+        val Do_temp2_col1: Vector = Do_temp2_4_t.row(0)
+        val Do_temp2_col2: Vector = Do_temp2_4_t.row(1)
+        val Do_temp2_col3: Vector = Do_temp2_4_t.row(2)
+
+        val Bo_final_4_col1 = Co_final_4.row(0)
+        val Bo_final_4_col2 = Co_final_4.row(1)
+        val Bo_final_4_col3 = Co_final_4.row(2)
+
+        val Do_temp3_col1 = oMi_translation_5.x(Bo_final_4_col1)
+        val Do_temp3_col2 = oMi_translation_5.x(Bo_final_4_col2)
+        val Do_temp3_col3 = oMi_translation_5.x(Bo_final_4_col3)
+
+        val Do_final_4 = Matrix(List(
+            List(Do_temp2_col1.at(0), Do_temp2_col2.at(0), Do_temp2_col3.at(0)),
+            List(Do_temp2_col1.at(1), Do_temp2_col2.at(1), Do_temp2_col3.at(1)),
+            List(Do_temp2_col1.at(2), Do_temp2_col2.at(2), Do_temp2_col3.at(2))
+        ))
+
+        // Ia_4 += these matrices
+        //    [1.22595, 0.0, 0.0, -0.0, -0.0471217, -0.0503435], 
+        //    [0.0, 1.22595, 0.0, 0.0471217, -0.0, -0.0146537], 
+        //    [0.0, 0.0, 1.22595, 0.0503435, 0.0146537, -0.0], 
+        //    [0.0, 0.0471217, 0.0503435, 0.0394276, -0.00151524, -0.00460025], 
+        //    [-0.0471217, 0.0, 0.0146537, -0.00151524, 0.0314604, 0.00216405], 
+        //    [-0.0503435, -0.0146537, 0.0, -0.00460025, 0.00216405, 0.0108695]]
+        val Ia_4 = Matrix( List(
+            List(1.22595 + Ao_final_4.at(0,0), 0.0, 0.0, -0.0, -0.0471217, -0.0503435),
+            List(0.0, 1.22595, 0.0, 0.0471217, -0.0, -0.0146537),
+            List(0.0, 0.0, 1.22595, 0.0503435, 0.0146537, -0.0),
+            List(0.0, 0.0471217, 0.0503435, 0.0394276, -0.00151524, -0.00460025),
+            List(-0.0471217, 0.0, 0.0146537, -0.00151524, 0.0314604, 0.00216405),
+            List(-0.0503435, -0.0146537, 0.0, -0.00460025, 0.00216405, 0.0108695)
+        ))
+
+
+
+
         Dinv_5
     } ensuring(res => res +/- 1e-5)
 
