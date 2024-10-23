@@ -226,7 +226,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             // raise an exception
             throw new Exception("ERROR: t1 and t2 sizes are not the same")
           }
-          val () = println("Returning t1Size: " + t1Size)
           t1Size
         }
         else if((isVector(t1) == true) && (isVector(t2) == true)){
@@ -249,7 +248,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           t2Size
         }
         else{
-          val () = println("ERROR: Returning 1 for Plus")
           Seq(1)
         }
       }
@@ -411,8 +409,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           val lhsSize = getDSSize(lhs)
           val rhsSize = getDSSize(rhs).head
 
-          // matrix multiplication
-          val () = println("lhsSize: " + lhsSize)
           val lhsRowSize = lhsSize.head
           var lhsColSize = 0
           try{
@@ -502,8 +498,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
     var newspecInputRanges: Map[Identifier, Map[Identifier, Interval]] = Map()
     var newspecInputErrors: Map[Identifier, Map[Identifier, Rational]] = Map()
     val newDefs = fncsToConsider.map(fnc => {
-      val () = println("Unrolling function: " + fnc.id)
-      val () = println("fnc: " + fnc)
       var specInputRangeForFunc: Map[Identifier, Interval] = Map()
       var specInputErrorForFunc: Map[Identifier, Rational] = Map()
       // I'll set an empty list for the ds sizes just in case, but it might be wrong
@@ -520,13 +514,9 @@ object ArithmeticUnrollPhase extends DaisyPhase {
               }
               case Variable(id) => {
                   if(isMatrix(k)){
-                    val () = println(s"adding ${id} ")
-                    val () = println(s"size: ${v.numRows}, ${v.numCols}")
                     sizeMap = sizeMap + (id -> Seq(v.numRows, v.numCols))
                   }
                   else{
-                    val () = println(s"adding ${id} ")
-                    val () = println(s"size: ${v.dsSize}")
                     sizeMap = sizeMap + (id -> Seq(v.dsSize))
                   }
               }
@@ -772,7 +762,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
         val () = println("t2: " + t2)
         val () = println("opr: " + opr)
       }
-      val () = println("Matrix x vector detected")
       // id_row_col
       var currLet = Let(getOrCreateFreshIdentifier(s"${id}_0_0", RealType), opr(Variable(getOrCreateFreshIdentifier(s"${t1Id}_0_0", RealType)), Variable(getOrCreateFreshIdentifier(s"${t2Id}_0", RealType))), rec(body))
       for(i <- 0 to t1RowSize - 1){
@@ -788,7 +777,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           }
         }
       }
-      val () = println("Returning currLet: " + currLet)
       currLet
     }
     else if(isVector(t1) && isVector(t2)){
@@ -980,7 +968,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
   }
 
   def rec(e: Expr): Expr = {
-    val () = println("rec: " + e)
     e match {
         case Let(i, v, b) => {
             if(isVector(v) | isMatrix(v)){
@@ -1146,10 +1133,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           }
         }
         case RealLiteral(r) => { 
-          val () = println("createUnrolledLet")
-          val () = println("RealLiteral: " + r)
-          val () = println("id: " + id)
-          val () = println("b: " + b)
           Let(id, v, rec(b))
         }
 
@@ -1262,10 +1245,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           currLet
         }
         case CrossProduct(lhs, rhs) => {
-          // vector cross product is not supported yet
-          val () = println("Detected CrossProduct")
-          val () = println("lhs: " + lhs)
-          val () = println("rhs: " + rhs)
           if (isVector(lhs) && isVector(rhs)) {
             // Get the size of the vectors to ensure they are 3D
             val lhsSize = getDSSize(lhs).head
@@ -1330,8 +1309,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             val lhsColSize = lhsSize(1)
             val rhsRowSize = rhsSize.head
             val rhsColSize = rhsSize(1)
-            val () = println("lhsSize: " + lhsSize)
-            val () = println("rhsSize: " + rhsSize)
             if(lhsColSize != rhsRowSize){
               val () = println("ERROR: lhsColSize and rhsRowSize should be the same")
               val () = println("lhsColSize: " + lhsColSize)
@@ -1400,10 +1377,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             // every temporary variable will be named as {lhs}_{rhs}_{index+1} and index will be increased by 1
             // please remind yourself that this is a matrix multiplication
             // we need to multiply every row of lhs with every column of rhs
-            val () = println("lhs: " + lhs)
-            val () = println("rhs: " + rhs)
-            val () = println("lhsSize: " + lhsSize)
-            val () = println("rhsSize: " + rhsSize)
             var newLet = Let(
               getOrCreateFreshIdentifier(s"${id.name}_0", RealType),
               Plus(
@@ -1482,19 +1455,13 @@ object ArithmeticUnrollPhase extends DaisyPhase {
           var currLet = Let(getOrCreateFreshIdentifier(s"${id_str}_0_0", RealType), Variable(getOrCreateFreshIdentifier(s"${m_name}_${from_indices_1}_${from_indices_2}", RealType)), rec(b))
           var ii = 0
           var jj = 0
-          val () = println("from_indices: " + from_indices)
-          val () = println("to_indices: " + to_indices)
-          val () = println("from_indices_1 + to_indices_1: " + (from_indices_1 + to_indices_1))
-          val () = println("from_indices_2 + to_indices_2: " + (from_indices_2 + to_indices_2))
           for(i <- from_indices_1 to (from_indices_1 + to_indices_1 - 1)){
             jj = 0
-            val () = println("i: " + i)
             for(j <- from_indices_2 to (from_indices_2 + to_indices_2 - 1)){
               if(i == from_indices_1 && j == from_indices_2){
                 ()
               }
               else{
-                val () = println("j: " + j)
                 val newId = getOrCreateFreshIdentifier(s"${id_str}_${ii}_${jj}", RealType)
                 val newLet = Let(newId, Variable(getOrCreateFreshIdentifier(s"${m_name}_${i}_${j}", RealType)), currLet)
                 currLet = newLet
@@ -1503,7 +1470,6 @@ object ArithmeticUnrollPhase extends DaisyPhase {
             }
             ii = ii + 1
           }
-          val () = println("Returning currLet: " + currLet)
           currLet
         }
 
