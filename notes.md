@@ -1,0 +1,4 @@
+I installed Daisy by compiling the dependencies mpfr and gmp from source. apt install did not work. For mpfr-java, I used:
+https://github.com/runtimeverification/mpfr-java/issues
+You can check the title "Building a JNI library which statically links against MPFR and GMP" for the exact commands for mpfr, gmp, and mpfr-java.
+The mvn install for mpfr-java always fails because of some tests. All of these tests are about floats, so I just deleted them and installed it as is. We are not using big floats(we will not use mpfr probably, too), so that should not be an issue. You can check how MPFRInterval is used in src/main/scala/daisy/analysis/SpecsProcessingPhase.scala. It is introduced in ds2l branch, and as far as I understand it is used in vectors and matrices, which we are not using now.
