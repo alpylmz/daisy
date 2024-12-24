@@ -549,4 +549,299 @@ trait RoundoffEvaluators extends RangeEvaluators {
   }
 
 
+  def evalRoundoffInterval[Interval <: RangeArithmetic[Interval]](
+    expr: Expr,
+    range: Map[(Expr, PathCond), daisy.tools.Interval],
+    precision: Map[Identifier, Precision],
+    freeVarsError: Map[Identifier, daisy.tools.Interval],
+    zeroError: daisy.tools.Interval,
+    fromError: Rational => daisy.tools.Interval,
+    interval2T: daisy.tools.Interval => daisy.tools.Interval,
+    constantsPrecision: Precision,
+    trackRoundoffErrors: Boolean, // if false, propagate only initial errors
+    approxRoundoff: Boolean = false,
+    resultAbsErrors: Map[Identifier, Rational] = Map(),
+    resultErrorsMetalibm: Map[Expr, Rational] = Map(),
+    precomputedIntermedErrs: CachingMap[(Expr, PathCond), (daisy.tools.Interval, Precision)] = CachingMap.empty[(Expr, PathCond), (daisy.tools.Interval, Precision)]()
+    ): (daisy.tools.Interval, Map[(Expr, PathCond), daisy.tools.Interval]) = {
+
+
+    val intermediateErrors = if (precomputedIntermedErrs.nonEmpty) precomputedIntermedErrs else new CachingMap[(Expr, PathCond), (daisy.tools.Interval, Precision)]
+
+    for ((id, err) <- freeVarsError){
+      intermediateErrors.put((Variable(id), emptyPath), (err, precision(id)))
+    }
+
+    def computeNewError(range: daisy.tools.Interval, propagatedError: daisy.tools.Interval, prec: Precision): (daisy.tools.Interval, Precision) = _computeNewError(range, propagatedError, prec, prec.absRoundoff)
+
+    def computeNewErrorTranscendental(range: daisy.tools.Interval, propagatedError: daisy.tools.Interval, prec: Precision): (daisy.tools.Interval, Precision) = _computeNewError(range, propagatedError, prec, prec.absTranscendentalRoundoff)
+
+    def _computeNewError(range: daisy.tools.Interval, propagatedError: daisy.tools.Interval, prec: Precision,
+                         roundoffComputationMethod: daisy.tools.Interval => Rational): (daisy.tools.Interval, Precision) =
+    if (trackRoundoffErrors) {
+      val actualRange: daisy.tools.Interval = range + propagatedError.toInterval
+      var rndoff = roundoffComputationMethod(actualRange)
+      if (approxRoundoff) {
+        rndoff = Rational.limitSize(rndoff)
+      }
+      (propagatedError +/- rndoff, prec)
+    } else {
+      (propagatedError, prec)
+    }
+
+    var plusTime = 0.0
+    var minusTime = 0.0
+    var timesTime = 0.0
+    var divTime = 0.0
+    var sinTime = 0.0
+    var cosTime = 0.0
+    var uminusTime = 0.0
+    var letTime = 0.0
+    var rangeLhsTime = 0.0
+    var rangeRhsTime = 0.0
+    var abstractRangeLhsTime = 0.0
+    var abstractRangeRhsTime = 0.0
+    var precisionTime = 0.0
+    var computenewerrortime = 0.0
+    var checkiftime = 0.0
+    var multiplytime = 0.0
+    var propagatedError1time = 0.0
+    var propagatedError2time = 0.0
+    var propagatedError3time = 0.0
+    var propagatedError4time = 0.0
+    var propagatedError5time = 0.0
+
+
+    def eval(e: Expr, p: PathCond): (daisy.tools.Interval, Precision) = intermediateErrors.getOrAdd((e, p), {
+
+      case x @ (RealLiteral(r), _) =>
+        val error = if (constantsPrecision.canRepresent(r) || !trackRoundoffErrors) {
+          zeroError
+        } else {
+          fromError(constantsPrecision.absRoundoff(r))
+        }
+        (error, constantsPrecision)
+      case (Int32Literal(i), _) => (zeroError, constantsPrecision) // todo check something for i?
+
+      // these can appear after mixed-precision tuning
+      case x @ (FinitePrecisionLiteral(r, prec, _), _) =>
+        val error = if (prec.canRepresent(r)) {
+          zeroError
+        } else {
+          fromError(prec.absRoundoff(r))
+        }
+        (error, prec)
+
+
+      case x @ (Plus(lhs, rhs), path) =>
+        val (errorLhs, precLhs) = eval(lhs, path)
+        val (errorRhs, precRhs) = eval(rhs, path)
+
+        val propagatedError = errorLhs + errorRhs
+        val res = computeNewError(range(x), propagatedError, getUpperBound(precLhs, precRhs)  /* Scala semantics */)
+        res
+
+      case x @ (Sqrt(lhs), path) =>
+        val (errorLhs, precLhs) = eval(lhs, path)
+
+        // Let's say sqrt's error is 0.01
+        val propagatedError = errorLhs * 0.01
+        val res = computeNewError(range(x), propagatedError, precLhs)
+        res
+
+
+      case x @ (Minus(lhs, rhs), path) =>
+        val (errorLhs, precLhs) = eval(lhs, path)
+        val (errorRhs, precRhs) = eval(rhs, path)
+
+        val propagatedError = errorLhs - errorRhs
+        val precision = getUpperBound(precLhs, precRhs)
+
+        if (precision.isInstanceOf[FloatPrecision] && sterbenzTheoremApplies(range(lhs, path), range(rhs, path))) {
+          (propagatedError, precision)
+        } else {
+          val res = computeNewError(range(x), propagatedError, precision)
+          res
+        }
+
+      case x @ (Times(lhs, rhs), path) =>
+        val (errorLhs, precLhs) = eval(lhs, path)
+        val (errorRhs, precRhs) = eval(rhs, path)
+
+        val rangeLhs = range(lhs, path)
+        val rangeRhs = range(rhs, path)
+        val abstractRangeLhs = interval2T(rangeLhs)
+
+        val abstractRangeRhs = interval2T(rangeRhs)
+
+        // NEW METHOD
+        ////////val abstractRangeLhsxlo = abstractRangeLhs.xlo
+        ////////val abstractRangeLhsxhi = abstractRangeLhs.xhi
+        ////////val errorRhsxlo = errorRhs.xlo
+        ////////val errorRhsxhi = errorRhs.xhi
+        ////////val abstractRangeRhsxlo = abstractRangeRhs.xlo
+        ////////val abstractRangeRhsxhi = abstractRangeRhs.xhi
+        ////////val errorLhsxlo = errorLhs.xlo
+        ////////val errorLhsxhi = errorLhs.xhi
+        ////////val propagatedErrorxlo: Float = multFunc._Z14wholemultlowerffffffff(
+        ////////  abstractRangeLhsxlo.toFloat,
+        ////////  abstractRangeLhsxhi.toFloat,
+        ////////  abstractRangeRhsxlo.toFloat,
+        ////////  abstractRangeRhsxhi.toFloat,
+        ////////  errorRhsxlo.toFloat,
+        ////////  errorRhsxhi.toFloat,
+        ////////  errorLhsxlo.toFloat,
+        ////////  errorLhsxhi.toFloat
+        ////////)
+        ////////val propagatedErrorxhi: Float = multFunc._Z14wholemultupperffffffff(
+        ////////  abstractRangeLhsxlo.toFloat,
+        ////////  abstractRangeLhsxhi.toFloat,
+        ////////  abstractRangeRhsxlo.toFloat,
+        ////////  abstractRangeRhsxhi.toFloat,
+        ////////  errorRhsxlo.toFloat,
+        ////////  errorRhsxhi.toFloat,
+        ////////  errorLhsxlo.toFloat,
+        ////////  errorLhsxhi.toFloat
+        ////////)
+        ////////val propagatedError = Interval(propagatedErrorxlo, propagatedErrorxhi)
+
+        // OLD METHOD:
+        val propagatedError =
+          abstractRangeLhs * errorRhs +
+          abstractRangeRhs * errorLhs +
+          errorLhs * errorRhs
+
+        val precision = getUpperBound(precLhs, precRhs)
+        // No roundoff error if one of the operands is a non-negative power of 2
+        if ((rangeLhs.isNonNegative && rangeLhs.isPowerOf2)
+          || (rangeRhs.isNonNegative && rangeRhs.isPowerOf2)) {
+          (propagatedError, precision)
+        } else {
+
+          val res = computeNewError(range(x), propagatedError, precision)
+
+
+          res
+        }
+
+      case x @ (Division(lhs, rhs), path) =>
+        val (errorLhs, precLhs) = eval(lhs, path)
+        val (errorRhs, precRhs) = eval(rhs, path)
+
+        val rangeLhs = range(lhs, path)
+        val rangeRhs = range(rhs, path)
+
+        // inverse, i.e. we are computing x * (1/y)
+        val rightInterval = rangeRhs + errorRhs.toInterval // the actual interval, incl errors
+
+        // the actual error interval can now contain 0, check this
+        ////if (rightInterval.includes(Rational.zero)) {
+        ////  throw DivisionByZeroException("trying to divide by error interval containing 0")
+        ////}
+        ////val a = daisy.tools.Interval.minAbs(rightInterval)
+        ////val errorMultiplier: Rational = -one / (a*a)
+        val errorMultiplier: Rational = Rational(100, 1)
+        val invErr = errorRhs * errorMultiplier
+
+        // error propagation
+        val inverse: daisy.tools.Interval = rangeRhs.inverse
+
+        val propagatedError =
+          interval2T(rangeLhs) * invErr +
+          interval2T(inverse) * errorLhs +
+          errorLhs * invErr
+
+        val () = println("division: lhs: " + lhs + " rhs: " + rhs)
+        val () = println("propagatedError: " + propagatedError)
+
+        val res = computeNewError(range(x), propagatedError, getUpperBound(precLhs, precRhs))
+
+        res
+
+      case x @ (UMinus(t), path) =>
+        val (error, prec) = eval(t, path)
+        (- error, prec)
+
+      case x @ (Sin(t), path) =>
+        // TODO not supported for fixed-points
+        val (errorT, prec) = eval(t, path)
+
+
+
+        // Bound the slope of sin(x) over the range by computing its
+        // derivative (i.e. cos(x)) as an interval and then taking the bound
+        // with the larger absolute value.
+        val deriv =  range(t, path).cosine
+        val errorMultiplier = if (abs(deriv.xlo) > abs(deriv.xhi)) deriv.xlo else deriv.xhi
+        val propagatedError = errorT * errorMultiplier
+
+        // TODO: check that this operation exists for this precision
+        val res = computeNewErrorTranscendental(range(x), propagatedError, prec)
+
+        res
+        
+
+      case x @ (Cos(t), path) =>
+        // TODO not supported for fixed-points
+        val (errorT, prec) = eval(t, path)
+
+        // Bound the slope of cos(x) over the range by computing its
+        // derivative (i.e. -sin(x)) as an interval and then taking the bound
+        // with the larger absolute value.
+        val deriv = -range(t, path).sine
+        val errorMultiplier = if (abs(deriv.xlo) > abs(deriv.xhi)) deriv.xlo else deriv.xhi
+        val propagatedError = errorT * errorMultiplier
+
+        // TODO: check that this operation exists for this precision
+        val res = computeNewErrorTranscendental(range(x), propagatedError, prec)
+        res
+      
+      case x @ (Cast(t, FinitePrecisionType(prec)), path) =>
+        val (errorT, precT) = eval(t, path)
+
+        if (prec > precT) {
+          // upcast does not lead to roundoff error
+          (errorT, prec)
+        } else {
+          // add new roundoff error corresponding to the cast precision
+          computeNewError(range(x), errorT, prec)
+        }
+
+      case x @ (Let(id, value, body), path) =>
+        val (valueError, valuePrec) = eval(value, path)
+
+        val idPrec = precision(id)
+        val error = if (idPrec < valuePrec) { // we need to cast down
+          val valueRange = range(value, path)
+          computeNewError(valueRange, valueError, idPrec)._1
+        } else {
+          valueError
+        }
+
+        intermediateErrors.put((Variable(id), path), (error, valuePrec)) // no problem as identifiers are unique
+        eval(body, path)
+
+      case (Variable(id), path) =>
+        //val () = println("path: " + path)
+        //val () = println("id: " + id)
+        //val () = println("intermediateErrors: " + intermediateErrors)
+        if (path.nonEmpty)
+          intermediateErrors(Variable(id), emptyPath)
+        else{
+          val () = println("YOU SHOULDN'T BE HERE")
+          intermediateErrors.find(x => x._1._1 == Variable(id)).get._2
+          //throw new Exception("Unknown variable: " + id)
+        }
+
+      
+      case x => throw new Exception(s"Not supported $x")
+
+    })
+
+    val (resError, _) = eval(expr, emptyPath)
+
+    (resError, intermediateErrors.mapValues(_._1).toMap)
+  }
+
+
 }
