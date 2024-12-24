@@ -48,8 +48,21 @@ trait RangeEvaluators {
 
       case (FMA(fac1, fac2, sum), path) => eval(fac1, path) * eval(fac2, path) + eval(sum, path)
 
-      case (Division(lhs, rhs), path) => eval(lhs, path) / eval(rhs, path)
-
+      case (Division(lhs, rhs), path) => {
+        try{
+          val eval_lhs = eval(lhs, path)
+          val eval_rhs = eval(rhs, path)
+          ////////////val () = println("Division opr with lhs: " + lhs + " and rhs: " + rhs)
+          ////////////val () = println("lhs: " + eval_lhs + " rhs: " + eval_rhs)
+          eval_lhs / eval_rhs
+        } catch{
+          case e: DivisionByZeroException => {
+            _reporter.warning(s"Division by zero in $lhs / $rhs")
+            _reporter.warning(s"Range of rhs: " + eval(rhs, path))
+            throw new DivisionByZeroException("qwe")
+          }
+        }
+      }
       //      case Pow(t, n) => eval(t) ^ eval(n)
 
       case (IntPow(b, n), path) => eval(b, path) ^ n
