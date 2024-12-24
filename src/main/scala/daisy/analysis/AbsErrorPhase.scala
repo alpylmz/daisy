@@ -30,9 +30,21 @@ object AbsErrorPhase extends DaisyPhase with tools.RoundoffEvaluators {
   override val name = "Roundoff"
   override val description = "Computes roundoff errors"
 
+  override val definedOptions: Set[CmdLineOption[Any]] = Set(
+    StringChoiceOption(
+      "errorMethod",
+      Set("affine", "interval", "intervalMPFR", "affineMPFR"),
+      "affine",
+      "Method for error analysis")
+  )
+
   override implicit val debugSection = DebugSectionAnalysis
 
+  var errorMethod = ""
+
   override def runPhase(ctx: Context, prg: Program): (Context, Program) = {
+    errorMethod = ctx.option[String]("errorMethod")
+
     val trackRoundoffErrs = !ctx.hasFlag("noRoundoff")
     val uniformPrecision = ctx.option[Precision]("precision")
 
@@ -68,20 +80,37 @@ object AbsErrorPhase extends DaisyPhase with tools.RoundoffEvaluators {
           (id -> precisionMap(id).absRoundoff(intermediateRanges((Variable(id), emptyPath))))
       }).toMap
 
+      errorMethod match {
+        case "interval" =>
+          val (resRoundoff, allErrors) = evalRoundoff[Interval](fncBody, intermediateRanges,
+            precisionMap,
+            inputErrorMap.mapValues(Interval.+/-).toMap,
+            zeroError = Interval.zero,
+            fromError = Interval.+/-,
+            interval2T = Interval.apply,
+            constantsPrecision = uniformPrecision,
+            trackRoundoffErrs,
+            resultAbsErrors = ctx.resultAbsoluteErrors,
+            resultErrorsMetalibm = ctx.approxReportedErrors.getOrElse(fnc.id, Map()) // if the function doesn't contain Approx nodes the map will be empty
+          )
 
-      val (resRoundoff, allErrors) = evalRoundoff[AffineForm](fncBody, intermediateRanges,
-        precisionMap,
-        inputErrorMap.mapValues(AffineForm.+/-).toMap,
-        zeroError = AffineForm.zero,
-        fromError = AffineForm.+/-,
-        interval2T = AffineForm.apply,
-        constantsPrecision = uniformPrecision,
-        trackRoundoffErrs,
-        resultAbsErrors = ctx.resultAbsoluteErrors,
-        resultErrorsMetalibm = ctx.approxReportedErrors.getOrElse(fnc.id, Map()) // if the function doesn't contain Approx nodes the map will be empty
-      )
+          return fnc.id -> (Interval.maxAbs(resRoundoff), allErrors.mapValues(aa => Interval.maxAbs(aa)).toMap)
+        case "affine" =>{
+          val (resRoundoff, allErrors) = evalRoundoff[AffineForm](fncBody, intermediateRanges,
+            precisionMap,
+            inputErrorMap.mapValues(AffineForm.+/-).toMap,
+            zeroError = AffineForm.zero,
+            fromError = AffineForm.+/-,
+            interval2T = AffineForm.apply,
+            constantsPrecision = uniformPrecision,
+            trackRoundoffErrs,
+            resultAbsErrors = ctx.resultAbsoluteErrors,
+            resultErrorsMetalibm = ctx.approxReportedErrors.getOrElse(fnc.id, Map()) // if the function doesn't contain Approx nodes the map will be empty
+          )
 
-      fnc.id -> (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(aa => Interval.maxAbs(aa.toInterval)).toMap)
+          return fnc.id -> (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(aa => Interval.maxAbs(aa.toInterval)).toMap)
+        }
+      }
     }
   }
 
