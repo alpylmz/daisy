@@ -1,0 +1,1292 @@
+[[34m  Info  [0m] 
+[[34m  Info  [0m] ************ Starting Daisy ************
+[[34m  Info  [0m] 
+[[34m  Info  [0m] Starting Scala extraction phase
+[[34m  Info  [0m] 
+[[34m  Info  [0m] Starting Specs processing phase
+[[34m  Info  [0m] 
+[[34m  Info  [0m] Starting Constant transformer phase
+[[34m  Info  [0m] 
+[[34m  Info  [0m] Starting TAC transformer phase
+[[34m  Info  [0m] 
+[[34m  Info  [0m] Starting Dataflow error phase
+[[34m  Info  [0m] using interval for ranges, interval for errors
+[[34m  Info  [0m] analyzing fnc: rnea
+[[34m  Info  [0m] error analysis for uniform Fixed16 precision
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50526.728515625, 50526.728515625]
+propagatedError: [-172.69353960687295, 172.69353960687295]
+prec: Fixed16
+first eval id: _tmp656
+first eval value: (_tmp654 + _tmp655)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp656, _tmp654, _tmp655)
+Overflow, increasing precision of _tmp656 to Fixed32
+Overflow, increasing precision of _tmp654 to Fixed32
+Overflow, increasing precision of _tmp655 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50526.728515625, 50526.728515625]
+propagatedError: [-173.62850945442915, 173.62850945442915]
+prec: Fixed16
+first eval id: new_f_linear_3_0
+first eval value: (_tmp656 + _tmp657)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_3_0, _tmp656, _tmp657)
+Overflow, increasing precision of new_f_linear_3_0 to Fixed32
+Overflow, increasing precision of _tmp656 to Fixed32
+Overflow, increasing precision of _tmp657 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50526.728515625, 50526.728515625]
+propagatedError: [-172.69353960687295, 172.69353960687295]
+prec: Fixed16
+first eval id: _tmp664
+first eval value: (_tmp662 + _tmp663)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp664, _tmp662, _tmp663)
+Overflow, increasing precision of _tmp664 to Fixed32
+Overflow, increasing precision of _tmp662 to Fixed32
+Overflow, increasing precision of _tmp663 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50526.728515625, 50526.728515625]
+propagatedError: [-173.62850945442915, 173.62850945442915]
+prec: Fixed16
+first eval id: new_f_linear_3_2
+first eval value: (_tmp664 + _tmp665)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_3_2, _tmp664, _tmp665)
+Overflow, increasing precision of new_f_linear_3_2 to Fixed32
+Overflow, increasing precision of _tmp664 to Fixed32
+Overflow, increasing precision of _tmp665 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-40675.7138671875, 40675.7138671875]
+propagatedError: [-176.5425575710833, 176.5425575710833]
+prec: Fixed16
+first eval id: _tmp668
+first eval value: (_tmp666 + _tmp667)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp668, _tmp666, _tmp667)
+Overflow, increasing precision of _tmp668 to Fixed32
+Overflow, increasing precision of _tmp666 to Fixed32
+Overflow, increasing precision of _tmp667 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-40675.7138671875, 40675.7138671875]
+propagatedError: [-177.39975073793903, 177.39975073793903]
+prec: Fixed16
+first eval id: new_f_angular_temp_3_0
+first eval value: (_tmp668 + _tmp669)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_3_0, _tmp668, _tmp669)
+Overflow, increasing precision of new_f_angular_temp_3_0 to Fixed32
+Overflow, increasing precision of _tmp668 to Fixed32
+Overflow, increasing precision of _tmp669 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-40675.7138671875, 40675.7138671875]
+propagatedError: [-176.5425575710833, 176.5425575710833]
+prec: Fixed16
+first eval id: _tmp676
+first eval value: (_tmp674 + _tmp675)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp676, _tmp674, _tmp675)
+Overflow, increasing precision of _tmp676 to Fixed32
+Overflow, increasing precision of _tmp674 to Fixed32
+Overflow, increasing precision of _tmp675 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-40675.7138671875, 40675.7138671875]
+propagatedError: [-177.39975073793903, 177.39975073793903]
+prec: Fixed16
+first eval id: new_f_angular_temp_3_2
+first eval value: (_tmp676 + _tmp677)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_3_2, _tmp676, _tmp677)
+Overflow, increasing precision of new_f_angular_temp_3_2 to Fixed32
+Overflow, increasing precision of _tmp676 to Fixed32
+Overflow, increasing precision of _tmp677 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43194.615966796875, 43194.615966796875]
+propagatedError: [-188.98970001051202, 188.98970001051202]
+prec: Fixed16
+first eval id: new_f_angular_3_0
+first eval value: (new_f_angular_temp_3_0 + f_angular_cross_3_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_3_0, new_f_angular_temp_3_0, f_angular_cross_3_0)
+Overflow, increasing precision of new_f_angular_3_0 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_3_0 to Fixed32
+Overflow, increasing precision of f_angular_cross_3_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43194.615966796875, 43194.615966796875]
+propagatedError: [-188.98970001051202, 188.98970001051202]
+prec: Fixed16
+first eval id: new_f_angular_3_2
+first eval value: (new_f_angular_temp_3_2 + f_angular_cross_3_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_3_2, new_f_angular_temp_3_2, f_angular_cross_3_2)
+Overflow, increasing precision of new_f_angular_3_2 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_3_2 to Fixed32
+Overflow, increasing precision of f_angular_cross_3_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50526.728515625, 50526.728515625]
+propagatedError: [-173.62850945442915, 173.62850945442915]
+prec: Fixed16
+first eval id: r_202_new_f_3_0
+first eval value: new_f_linear_3_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_202_new_f_3_0, new_f_linear_3_0)
+Overflow, increasing precision of r_202_new_f_3_0 to Fixed32
+Overflow, increasing precision of new_f_linear_3_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50526.728515625, 50526.728515625]
+propagatedError: [-173.62850945442915, 173.62850945442915]
+prec: Fixed16
+first eval id: r_202_new_f_3_2
+first eval value: new_f_linear_3_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_202_new_f_3_2, new_f_linear_3_2)
+Overflow, increasing precision of r_202_new_f_3_2 to Fixed32
+Overflow, increasing precision of new_f_linear_3_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43194.615966796875, 43194.615966796875]
+propagatedError: [-188.98970001051202, 188.98970001051202]
+prec: Fixed16
+first eval id: r_202_new_f_3_3
+first eval value: new_f_angular_3_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_202_new_f_3_3, new_f_angular_3_0)
+Overflow, increasing precision of r_202_new_f_3_3 to Fixed32
+Overflow, increasing precision of new_f_angular_3_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43194.615966796875, 43194.615966796875]
+propagatedError: [-188.98970001051202, 188.98970001051202]
+prec: Fixed16
+first eval id: r_202_new_f_3_5
+first eval value: new_f_angular_3_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_202_new_f_3_5, new_f_angular_3_2)
+Overflow, increasing precision of r_202_new_f_3_5 to Fixed32
+Overflow, increasing precision of new_f_angular_3_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50944.911697387695, 50944.911697387695]
+propagatedError: [-174.34940983828437, 174.34940983828437]
+prec: Fixed16
+first eval id: new_data_f_parent_3_0
+first eval value: (f_rnea_firstpass2_0 + r_202_new_f_3_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_3_0, f_rnea_firstpass2_0, r_202_new_f_3_0)
+Overflow, increasing precision of new_data_f_parent_3_0 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass2_0 to Fixed32
+Overflow, increasing precision of r_202_new_f_3_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50832.68541717529, 50832.68541717529]
+propagatedError: [-174.21014297249053, 174.21014297249053]
+prec: Fixed16
+first eval id: new_data_f_parent_3_2
+first eval value: (f_rnea_firstpass2_2 + r_202_new_f_3_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_3_2, f_rnea_firstpass2_2, r_202_new_f_3_2)
+Overflow, increasing precision of new_data_f_parent_3_2 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass2_2 to Fixed32
+Overflow, increasing precision of r_202_new_f_3_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43301.09576061368, 43301.09576061368]
+propagatedError: [-189.2689357455759, 189.2689357455759]
+prec: Fixed16
+first eval id: new_data_f_parent_3_3
+first eval value: (f_rnea_firstpass2_3 + r_202_new_f_3_3)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_3_3, f_rnea_firstpass2_3, r_202_new_f_3_3)
+Overflow, increasing precision of new_data_f_parent_3_3 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass2_3 to Fixed32
+Overflow, increasing precision of r_202_new_f_3_3 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.56278061867, 43299.56278061867]
+propagatedError: [-189.26791260158035, 189.26791260158035]
+prec: Fixed16
+first eval id: new_data_f_parent_3_5
+first eval value: (f_rnea_firstpass2_5 + r_202_new_f_3_5)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_3_5, f_rnea_firstpass2_5, r_202_new_f_3_5)
+Overflow, increasing precision of new_data_f_parent_3_5 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass2_5 to Fixed32
+Overflow, increasing precision of r_202_new_f_3_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.56278061867, 43299.56278061867]
+propagatedError: [-189.26791260158035, 189.26791260158035]
+prec: Fixed16
+first eval id: data_tau_temp_2
+first eval value: new_data_f_parent_3_5
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(data_tau_temp_2, new_data_f_parent_3_5)
+Overflow, increasing precision of data_tau_temp_2 to Fixed32
+Overflow, increasing precision of new_data_f_parent_3_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50944.911697387695, 50944.911697387695]
+propagatedError: [-174.34940983828437, 174.34940983828437]
+prec: Fixed16
+first eval id: f_linear_2_0
+first eval value: new_data_f_parent_3_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_linear_2_0, new_data_f_parent_3_0)
+Overflow, increasing precision of f_linear_2_0 to Fixed32
+Overflow, increasing precision of new_data_f_parent_3_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50832.68541717529, 50832.68541717529]
+propagatedError: [-174.21014297249053, 174.21014297249053]
+prec: Fixed16
+first eval id: f_linear_2_2
+first eval value: new_data_f_parent_3_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_linear_2_2, new_data_f_parent_3_2)
+Overflow, increasing precision of f_linear_2_2 to Fixed32
+Overflow, increasing precision of new_data_f_parent_3_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43301.09576061368, 43301.09576061368]
+propagatedError: [-189.2689357455759, 189.2689357455759]
+prec: Fixed16
+first eval id: f_angular_2_0
+first eval value: new_data_f_parent_3_3
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_angular_2_0, new_data_f_parent_3_3)
+Overflow, increasing precision of f_angular_2_0 to Fixed32
+Overflow, increasing precision of new_data_f_parent_3_3 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.56278061867, 43299.56278061867]
+propagatedError: [-189.26791260158035, 189.26791260158035]
+prec: Fixed16
+first eval id: f_angular_2_2
+first eval value: new_data_f_parent_3_5
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_angular_2_2, new_data_f_parent_3_5)
+Overflow, increasing precision of f_angular_2_2 to Fixed32
+Overflow, increasing precision of new_data_f_parent_3_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50944.91015625, 50944.91015625]
+propagatedError: [-177.46951352339238, 177.46951352339238]
+prec: Fixed16
+first eval id: _tmp684
+first eval value: (limi_rotation_2_0_0 * f_linear_2_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp684, limi_rotation_2_0_0, f_linear_2_0)
+Overflow, increasing precision of _tmp684 to Fixed32
+Overflow, increasing precision of limi_rotation_2_0_0 to Fixed32
+Overflow, increasing precision of f_linear_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81787.451171875, 81787.451171875]
+propagatedError: [-291.09682700177655, 291.09682700177655]
+prec: Fixed16
+first eval id: _tmp686
+first eval value: (_tmp684 + _tmp685)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp686, _tmp684, _tmp685)
+Overflow, increasing precision of _tmp686 to Fixed32
+Overflow, increasing precision of _tmp684 to Fixed32
+Overflow, increasing precision of _tmp685 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81787.451171875, 81787.451171875]
+propagatedError: [-292.65359060140327, 292.65359060140327]
+prec: Fixed16
+first eval id: new_f_linear_2_0
+first eval value: (_tmp686 + _tmp687)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_2_0, _tmp686, _tmp687)
+Overflow, increasing precision of new_f_linear_2_0 to Fixed32
+Overflow, increasing precision of _tmp686 to Fixed32
+Overflow, increasing precision of _tmp687 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50832.68359375, 50832.68359375]
+propagatedError: [-178.45932187512517, 178.45932187512517]
+prec: Fixed16
+first eval id: _tmp691
+first eval value: (limi_rotation_2_1_2 * f_linear_2_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp691, limi_rotation_2_1_2, f_linear_2_2)
+Overflow, increasing precision of _tmp691 to Fixed32
+Overflow, increasing precision of limi_rotation_2_1_2 to Fixed32
+Overflow, increasing precision of f_linear_2_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50832.68359375, 50832.68359375]
+propagatedError: [-181.87101348349825, 181.87101348349825]
+prec: Fixed16
+first eval id: new_f_linear_2_1
+first eval value: (_tmp690 + _tmp691)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_2_1, _tmp690, _tmp691)
+Overflow, increasing precision of new_f_linear_2_1 to Fixed32
+Overflow, increasing precision of _tmp690 to Fixed32
+Overflow, increasing precision of _tmp691 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50944.91015625, 50944.91015625]
+propagatedError: [-179.51405663974583, 179.51405663974583]
+prec: Fixed16
+first eval id: _tmp692
+first eval value: (limi_rotation_2_2_0 * f_linear_2_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp692, limi_rotation_2_2_0, f_linear_2_0)
+Overflow, increasing precision of _tmp692 to Fixed32
+Overflow, increasing precision of limi_rotation_2_2_0 to Fixed32
+Overflow, increasing precision of f_linear_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81787.451171875, 81787.451171875]
+propagatedError: [-294.3326507094316, 294.3326507094316]
+prec: Fixed16
+first eval id: _tmp694
+first eval value: (_tmp692 + _tmp693)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp694, _tmp692, _tmp693)
+Overflow, increasing precision of _tmp694 to Fixed32
+Overflow, increasing precision of _tmp692 to Fixed32
+Overflow, increasing precision of _tmp693 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81787.451171875, 81787.451171875]
+propagatedError: [-295.8894756049849, 295.8894756049849]
+prec: Fixed16
+first eval id: new_f_linear_2_2
+first eval value: (_tmp694 + _tmp695)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_2_2, _tmp694, _tmp695)
+Overflow, increasing precision of new_f_linear_2_2 to Fixed32
+Overflow, increasing precision of _tmp694 to Fixed32
+Overflow, increasing precision of _tmp695 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43301.09765625, 43301.09765625]
+propagatedError: [-194.91547292936593, 194.91547292936593]
+prec: Fixed16
+first eval id: _tmp696
+first eval value: (limi_rotation_2_0_0 * f_angular_2_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp696, limi_rotation_2_0_0, f_angular_2_0)
+Overflow, increasing precision of _tmp696 to Fixed32
+Overflow, increasing precision of limi_rotation_2_0_0 to Fixed32
+Overflow, increasing precision of f_angular_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-75470.14453125, 75470.14453125]
+propagatedError: [-341.71613975428045, 341.71613975428045]
+prec: Fixed16
+first eval id: _tmp698
+first eval value: (_tmp696 + _tmp697)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp698, _tmp696, _tmp697)
+Overflow, increasing precision of _tmp698 to Fixed32
+Overflow, increasing precision of _tmp696 to Fixed32
+Overflow, increasing precision of _tmp697 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-75470.14453125, 75470.14453125]
+propagatedError: [-343.0435269093141, 343.0435269093141]
+prec: Fixed16
+first eval id: new_f_angular_temp_2_0
+first eval value: (_tmp698 + _tmp699)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_2_0, _tmp698, _tmp699)
+Overflow, increasing precision of new_f_angular_temp_2_0 to Fixed32
+Overflow, increasing precision of _tmp698 to Fixed32
+Overflow, increasing precision of _tmp699 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.5625, 43299.5625]
+propagatedError: [-194.91432631015778, 194.91432631015778]
+prec: Fixed16
+first eval id: _tmp703
+first eval value: (limi_rotation_2_1_2 * f_angular_2_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp703, limi_rotation_2_1_2, f_angular_2_2)
+Overflow, increasing precision of _tmp703 to Fixed32
+Overflow, increasing precision of limi_rotation_2_1_2 to Fixed32
+Overflow, increasing precision of f_angular_2_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.5625, 43299.5625]
+propagatedError: [-197.22799311205745, 197.22799311205745]
+prec: Fixed16
+first eval id: new_f_angular_temp_2_1
+first eval value: (_tmp702 + _tmp703)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_2_1, _tmp702, _tmp703)
+Overflow, increasing precision of new_f_angular_temp_2_1 to Fixed32
+Overflow, increasing precision of _tmp702 to Fixed32
+Overflow, increasing precision of _tmp703 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43301.09765625, 43301.09765625]
+propagatedError: [-194.91547292936593, 194.91547292936593]
+prec: Fixed16
+first eval id: _tmp704
+first eval value: (limi_rotation_2_2_0 * f_angular_2_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp704, limi_rotation_2_2_0, f_angular_2_0)
+Overflow, increasing precision of _tmp704 to Fixed32
+Overflow, increasing precision of limi_rotation_2_2_0 to Fixed32
+Overflow, increasing precision of f_angular_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-75470.14453125, 75470.14453125]
+propagatedError: [-341.71613975428045, 341.71613975428045]
+prec: Fixed16
+first eval id: _tmp706
+first eval value: (_tmp704 + _tmp705)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp706, _tmp704, _tmp705)
+Overflow, increasing precision of _tmp706 to Fixed32
+Overflow, increasing precision of _tmp704 to Fixed32
+Overflow, increasing precision of _tmp705 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-75470.14453125, 75470.14453125]
+propagatedError: [-343.0435269093141, 343.0435269093141]
+prec: Fixed16
+first eval id: new_f_angular_temp_2_2
+first eval value: (_tmp706 + _tmp707)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_2_2, _tmp706, _tmp707)
+Overflow, increasing precision of new_f_angular_temp_2_2 to Fixed32
+Overflow, increasing precision of _tmp706 to Fixed32
+Overflow, increasing precision of _tmp707 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101314.98046875, 101314.98046875]
+propagatedError: [-442.60651516448706, 442.60651516448706]
+prec: Fixed16
+first eval id: new_f_angular_2_0
+first eval value: (new_f_angular_temp_2_0 + f_angular_cross_2_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_2_0, new_f_angular_temp_2_0, f_angular_cross_2_0)
+Overflow, increasing precision of new_f_angular_2_0 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_2_0 to Fixed32
+Overflow, increasing precision of f_angular_cross_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.5625, 43299.5625]
+propagatedError: [-202.23848155140877, 202.23848155140877]
+prec: Fixed16
+first eval id: new_f_angular_2_1
+first eval value: (new_f_angular_temp_2_1 + f_angular_cross_2_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_2_1, new_f_angular_temp_2_1, f_angular_cross_2_1)
+Overflow, increasing precision of new_f_angular_2_1 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_2_1 to Fixed32
+Overflow, increasing precision of f_angular_cross_2_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101314.98046875, 101314.98046875]
+propagatedError: [-442.60651516448706, 442.60651516448706]
+prec: Fixed16
+first eval id: new_f_angular_2_2
+first eval value: (new_f_angular_temp_2_2 + f_angular_cross_2_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_2_2, new_f_angular_temp_2_2, f_angular_cross_2_2)
+Overflow, increasing precision of new_f_angular_2_2 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_2_2 to Fixed32
+Overflow, increasing precision of f_angular_cross_2_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81787.451171875, 81787.451171875]
+propagatedError: [-295.88941456982866, 295.88941456982866]
+prec: Fixed16
+first eval id: r_203_new_f_2_0
+first eval value: new_f_linear_2_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_203_new_f_2_0, new_f_linear_2_0)
+Overflow, increasing precision of r_203_new_f_2_0 to Fixed32
+Overflow, increasing precision of new_f_linear_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50832.68359375, 50832.68359375]
+propagatedError: [-182.9729873824399, 182.9729873824399]
+prec: Fixed16
+first eval id: r_203_new_f_2_1
+first eval value: new_f_linear_2_1
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_203_new_f_2_1, new_f_linear_2_1)
+Overflow, increasing precision of r_203_new_f_2_1 to Fixed32
+Overflow, increasing precision of new_f_linear_2_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81787.451171875, 81787.451171875]
+propagatedError: [-295.88941456982866, 295.88941456982866]
+prec: Fixed16
+first eval id: r_203_new_f_2_2
+first eval value: new_f_linear_2_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_203_new_f_2_2, new_f_linear_2_2)
+Overflow, increasing precision of r_203_new_f_2_2 to Fixed32
+Overflow, increasing precision of new_f_linear_2_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101314.98046875, 101314.98046875]
+propagatedError: [-442.60651516448706, 442.60651516448706]
+prec: Fixed16
+first eval id: r_203_new_f_2_3
+first eval value: new_f_angular_2_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_203_new_f_2_3, new_f_angular_2_0)
+Overflow, increasing precision of r_203_new_f_2_3 to Fixed32
+Overflow, increasing precision of new_f_angular_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.5625, 43299.5625]
+propagatedError: [-202.23848155140877, 202.23848155140877]
+prec: Fixed16
+first eval id: r_203_new_f_2_4
+first eval value: new_f_angular_2_1
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_203_new_f_2_4, new_f_angular_2_1)
+Overflow, increasing precision of r_203_new_f_2_4 to Fixed32
+Overflow, increasing precision of new_f_angular_2_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101314.98046875, 101314.98046875]
+propagatedError: [-442.60651516448706, 442.60651516448706]
+prec: Fixed16
+first eval id: r_203_new_f_2_5
+first eval value: new_f_angular_2_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_203_new_f_2_5, new_f_angular_2_2)
+Overflow, increasing precision of r_203_new_f_2_5 to Fixed32
+Overflow, increasing precision of new_f_angular_2_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81795.03848463297, 81795.03848463297]
+propagatedError: [-295.90498239491444, 295.90498239491444]
+prec: Fixed16
+first eval id: new_data_f_parent_2_0
+first eval value: (f_rnea_firstpass1_0 + r_203_new_f_2_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_2_0, f_rnea_firstpass1_0, r_203_new_f_2_0)
+Overflow, increasing precision of new_data_f_parent_2_0 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass1_0 to Fixed32
+Overflow, increasing precision of r_203_new_f_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50840.13851380348, 50840.13851380348]
+propagatedError: [-182.98790285773805, 182.98790285773805]
+prec: Fixed16
+first eval id: new_data_f_parent_2_1
+first eval value: (f_rnea_firstpass1_1 + r_203_new_f_2_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_2_1, f_rnea_firstpass1_1, r_203_new_f_2_1)
+Overflow, increasing precision of new_data_f_parent_2_1 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass1_1 to Fixed32
+Overflow, increasing precision of r_203_new_f_2_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81788.69214093685, 81788.69214093685]
+propagatedError: [-295.89914417348604, 295.89914417348604]
+prec: Fixed16
+first eval id: new_data_f_parent_2_2
+first eval value: (f_rnea_firstpass1_2 + r_203_new_f_2_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_2_2, f_rnea_firstpass1_2, r_203_new_f_2_2)
+Overflow, increasing precision of new_data_f_parent_2_2 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass1_2 to Fixed32
+Overflow, increasing precision of r_203_new_f_2_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101316.98055359162, 101316.98055359162]
+propagatedError: [-442.6170545849377, 442.6170545849377]
+prec: Fixed16
+first eval id: new_data_f_parent_2_3
+first eval value: (f_rnea_firstpass1_3 + r_203_new_f_2_3)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_2_3, f_rnea_firstpass1_3, r_203_new_f_2_3)
+Overflow, increasing precision of new_data_f_parent_2_3 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass1_3 to Fixed32
+Overflow, increasing precision of r_203_new_f_2_3 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43302.030703769065, 43302.030703769065]
+propagatedError: [-202.24877330406076, 202.24877330406076]
+prec: Fixed16
+first eval id: new_data_f_parent_2_4
+first eval value: (f_rnea_firstpass1_4 + r_203_new_f_2_4)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_2_4, f_rnea_firstpass1_4, r_203_new_f_2_4)
+Overflow, increasing precision of new_data_f_parent_2_4 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass1_4 to Fixed32
+Overflow, increasing precision of r_203_new_f_2_4 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03138862364, 101317.03138862364]
+propagatedError: [-442.61706596323756, 442.61706596323756]
+prec: Fixed16
+first eval id: new_data_f_parent_2_5
+first eval value: (f_rnea_firstpass1_5 + r_203_new_f_2_5)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_2_5, f_rnea_firstpass1_5, r_203_new_f_2_5)
+Overflow, increasing precision of new_data_f_parent_2_5 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass1_5 to Fixed32
+Overflow, increasing precision of r_203_new_f_2_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03138862364, 101317.03138862364]
+propagatedError: [-442.61706596323756, 442.61706596323756]
+prec: Fixed16
+first eval id: data_tau_temp_1
+first eval value: new_data_f_parent_2_5
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(data_tau_temp_1, new_data_f_parent_2_5)
+Overflow, increasing precision of data_tau_temp_1 to Fixed32
+Overflow, increasing precision of new_data_f_parent_2_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81795.03848463297, 81795.03848463297]
+propagatedError: [-295.90498239491444, 295.90498239491444]
+prec: Fixed16
+first eval id: f_linear_1_0
+first eval value: new_data_f_parent_2_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_linear_1_0, new_data_f_parent_2_0)
+Overflow, increasing precision of f_linear_1_0 to Fixed32
+Overflow, increasing precision of new_data_f_parent_2_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50840.13851380348, 50840.13851380348]
+propagatedError: [-182.98790285773805, 182.98790285773805]
+prec: Fixed16
+first eval id: f_linear_1_1
+first eval value: new_data_f_parent_2_1
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_linear_1_1, new_data_f_parent_2_1)
+Overflow, increasing precision of f_linear_1_1 to Fixed32
+Overflow, increasing precision of new_data_f_parent_2_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81788.69214093685, 81788.69214093685]
+propagatedError: [-295.89914417348604, 295.89914417348604]
+prec: Fixed16
+first eval id: f_linear_1_2
+first eval value: new_data_f_parent_2_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_linear_1_2, new_data_f_parent_2_2)
+Overflow, increasing precision of f_linear_1_2 to Fixed32
+Overflow, increasing precision of new_data_f_parent_2_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101316.98055359162, 101316.98055359162]
+propagatedError: [-442.6170545849377, 442.6170545849377]
+prec: Fixed16
+first eval id: f_angular_1_0
+first eval value: new_data_f_parent_2_3
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_angular_1_0, new_data_f_parent_2_3)
+Overflow, increasing precision of f_angular_1_0 to Fixed32
+Overflow, increasing precision of new_data_f_parent_2_3 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43302.030703769065, 43302.030703769065]
+propagatedError: [-202.24877330406076, 202.24877330406076]
+prec: Fixed16
+first eval id: f_angular_1_1
+first eval value: new_data_f_parent_2_4
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_angular_1_1, new_data_f_parent_2_4)
+Overflow, increasing precision of f_angular_1_1 to Fixed32
+Overflow, increasing precision of new_data_f_parent_2_4 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03138862364, 101317.03138862364]
+propagatedError: [-442.61706596323756, 442.61706596323756]
+prec: Fixed16
+first eval id: f_angular_1_2
+first eval value: new_data_f_parent_2_5
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(f_angular_1_2, new_data_f_parent_2_5)
+Overflow, increasing precision of f_angular_1_2 to Fixed32
+Overflow, increasing precision of new_data_f_parent_2_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81795.0390625, 81795.0390625]
+propagatedError: [-300.91546289250255, 300.91546289250255]
+prec: Fixed16
+first eval id: _tmp714
+first eval value: (limi_rotation_1_0_0 * f_linear_1_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp714, limi_rotation_1_0_0, f_linear_1_0)
+Overflow, increasing precision of _tmp714 to Fixed32
+Overflow, increasing precision of limi_rotation_1_0_0 to Fixed32
+Overflow, increasing precision of f_linear_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50840.13671875, 50840.13671875]
+propagatedError: [-186.10218046046793, 186.10218046046793]
+prec: Fixed16
+first eval id: _tmp715
+first eval value: (limi_rotation_1_0_1 * f_linear_1_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp715, limi_rotation_1_0_1, f_linear_1_1)
+Overflow, increasing precision of _tmp715 to Fixed32
+Overflow, increasing precision of limi_rotation_1_0_1 to Fixed32
+Overflow, increasing precision of f_linear_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132635.17578125, 132635.17578125]
+propagatedError: [-487.017963799648, 487.017963799648]
+prec: Fixed16
+first eval id: _tmp716
+first eval value: (_tmp714 + _tmp715)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp716, _tmp714, _tmp715)
+Overflow, increasing precision of _tmp716 to Fixed32
+Overflow, increasing precision of _tmp714 to Fixed32
+Overflow, increasing precision of _tmp715 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132635.17578125, 132635.17578125]
+propagatedError: [-489.5232309708372, 489.5232309708372]
+prec: Fixed16
+first eval id: new_f_linear_1_0
+first eval value: (_tmp716 + _tmp717)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_1_0, _tmp716, _tmp717)
+Overflow, increasing precision of new_f_linear_1_0 to Fixed32
+Overflow, increasing precision of _tmp716 to Fixed32
+Overflow, increasing precision of _tmp717 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81788.6953125, 81788.6953125]
+propagatedError: [-300.9093380495906, 300.9093380495906]
+prec: Fixed16
+first eval id: _tmp721
+first eval value: (limi_rotation_1_1_2 * f_linear_1_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp721, limi_rotation_1_1_2, f_linear_1_2)
+Overflow, increasing precision of _tmp721 to Fixed32
+Overflow, increasing precision of limi_rotation_1_1_2 to Fixed32
+Overflow, increasing precision of f_linear_1_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81788.6953125, 81788.6953125]
+propagatedError: [-304.9722674144432, 304.9722674144432]
+prec: Fixed16
+first eval id: new_f_linear_1_1
+first eval value: (_tmp720 + _tmp721)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_1_1, _tmp720, _tmp721)
+Overflow, increasing precision of new_f_linear_1_1 to Fixed32
+Overflow, increasing precision of _tmp720 to Fixed32
+Overflow, increasing precision of _tmp721 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81795.0390625, 81795.0390625]
+propagatedError: [-300.9157375674695, 300.9157375674695]
+prec: Fixed16
+first eval id: _tmp722
+first eval value: (limi_rotation_1_2_0 * f_linear_1_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp722, limi_rotation_1_2_0, f_linear_1_0)
+Overflow, increasing precision of _tmp722 to Fixed32
+Overflow, increasing precision of limi_rotation_1_2_0 to Fixed32
+Overflow, increasing precision of f_linear_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-50840.13671875, 50840.13671875]
+propagatedError: [-188.18766540661454, 188.18766540661454]
+prec: Fixed16
+first eval id: _tmp723
+first eval value: (limi_rotation_1_2_1 * f_linear_1_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp723, limi_rotation_1_2_1, f_linear_1_1)
+Overflow, increasing precision of _tmp723 to Fixed32
+Overflow, increasing precision of limi_rotation_1_2_1 to Fixed32
+Overflow, increasing precision of f_linear_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132635.17578125, 132635.17578125]
+propagatedError: [-494.9376823808998, 494.9376823808998]
+prec: Fixed16
+first eval id: _tmp724
+first eval value: (_tmp722 + _tmp723)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp724, _tmp722, _tmp723)
+Overflow, increasing precision of _tmp724 to Fixed32
+Overflow, increasing precision of _tmp722 to Fixed32
+Overflow, increasing precision of _tmp723 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132635.17578125, 132635.17578125]
+propagatedError: [-497.4430985720828, 497.4430985720828]
+prec: Fixed16
+first eval id: new_f_linear_1_2
+first eval value: (_tmp724 + _tmp725)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_linear_1_2, _tmp724, _tmp725)
+Overflow, increasing precision of new_f_linear_1_2 to Fixed32
+Overflow, increasing precision of _tmp724 to Fixed32
+Overflow, increasing precision of _tmp725 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101316.984375, 101316.984375]
+propagatedError: [-455.4840855151415, 455.4840855151415]
+prec: Fixed16
+first eval id: _tmp726
+first eval value: (limi_rotation_1_0_0 * f_angular_1_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp726, limi_rotation_1_0_0, f_angular_1_0)
+Overflow, increasing precision of _tmp726 to Fixed32
+Overflow, increasing precision of limi_rotation_1_0_0 to Fixed32
+Overflow, increasing precision of f_angular_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43302.03125, 43302.03125]
+propagatedError: [-207.87246693205088, 207.87246693205088]
+prec: Fixed16
+first eval id: _tmp727
+first eval value: (limi_rotation_1_0_1 * f_angular_1_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp727, limi_rotation_1_0_1, f_angular_1_1)
+Overflow, increasing precision of _tmp727 to Fixed32
+Overflow, increasing precision of limi_rotation_1_0_1 to Fixed32
+Overflow, increasing precision of f_angular_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-663.3566745175049, 663.3566745175049]
+prec: Fixed16
+first eval id: _tmp728
+first eval value: (_tmp726 + _tmp727)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp728, _tmp726, _tmp727)
+Overflow, increasing precision of _tmp728 to Fixed32
+Overflow, increasing precision of _tmp726 to Fixed32
+Overflow, increasing precision of _tmp727 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-666.4625797914341, 666.4625797914341]
+prec: Fixed16
+first eval id: new_f_angular_temp_1_0
+first eval value: (_tmp728 + _tmp729)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_1_0, _tmp728, _tmp729)
+Overflow, increasing precision of new_f_angular_temp_1_0 to Fixed32
+Overflow, increasing precision of _tmp728 to Fixed32
+Overflow, increasing precision of _tmp729 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03125, 101317.03125]
+propagatedError: [-455.4840273410082, 455.4840273410082]
+prec: Fixed16
+first eval id: _tmp733
+first eval value: (limi_rotation_1_1_2 * f_angular_1_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp733, limi_rotation_1_1_2, f_angular_1_2)
+Overflow, increasing precision of _tmp733 to Fixed32
+Overflow, increasing precision of limi_rotation_1_1_2 to Fixed32
+Overflow, increasing precision of f_angular_1_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03125, 101317.03125]
+propagatedError: [-459.9179111723788, 459.9179111723788]
+prec: Fixed16
+first eval id: new_f_angular_temp_1_1
+first eval value: (_tmp732 + _tmp733)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_1_1, _tmp732, _tmp733)
+Overflow, increasing precision of new_f_angular_temp_1_1 to Fixed32
+Overflow, increasing precision of _tmp732 to Fixed32
+Overflow, increasing precision of _tmp733 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101316.984375, 101316.984375]
+propagatedError: [-455.4840855151415, 455.4840855151415]
+prec: Fixed16
+first eval id: _tmp734
+first eval value: (limi_rotation_1_2_0 * f_angular_1_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp734, limi_rotation_1_2_0, f_angular_1_0)
+Overflow, increasing precision of _tmp734 to Fixed32
+Overflow, increasing precision of limi_rotation_1_2_0 to Fixed32
+Overflow, increasing precision of f_angular_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43302.03125, 43302.03125]
+propagatedError: [-207.87246693205088, 207.87246693205088]
+prec: Fixed16
+first eval id: _tmp735
+first eval value: (limi_rotation_1_2_1 * f_angular_1_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp735, limi_rotation_1_2_1, f_angular_1_1)
+Overflow, increasing precision of _tmp735 to Fixed32
+Overflow, increasing precision of limi_rotation_1_2_1 to Fixed32
+Overflow, increasing precision of f_angular_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-663.3566745175049, 663.3566745175049]
+prec: Fixed16
+first eval id: _tmp736
+first eval value: (_tmp734 + _tmp735)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(_tmp736, _tmp734, _tmp735)
+Overflow, increasing precision of _tmp736 to Fixed32
+Overflow, increasing precision of _tmp734 to Fixed32
+Overflow, increasing precision of _tmp735 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-666.4625797914341, 666.4625797914341]
+prec: Fixed16
+first eval id: new_f_angular_temp_1_2
+first eval value: (_tmp736 + _tmp737)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_temp_1_2, _tmp736, _tmp737)
+Overflow, increasing precision of new_f_angular_temp_1_2 to Fixed32
+Overflow, increasing precision of _tmp736 to Fixed32
+Overflow, increasing precision of _tmp737 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-673.0315240696073, 673.0315240696073]
+prec: Fixed16
+first eval id: new_f_angular_1_0
+first eval value: (new_f_angular_temp_1_0 + f_angular_cross_1_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_1_0, new_f_angular_temp_1_0, f_angular_cross_1_0)
+Overflow, increasing precision of new_f_angular_1_0 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_1_0 to Fixed32
+Overflow, increasing precision of f_angular_cross_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03125, 101317.03125]
+propagatedError: [-468.04471872607246, 468.04471872607246]
+prec: Fixed16
+first eval id: new_f_angular_1_1
+first eval value: (new_f_angular_temp_1_1 + f_angular_cross_1_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_1_1, new_f_angular_temp_1_1, f_angular_cross_1_1)
+Overflow, increasing precision of new_f_angular_1_1 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_1_1 to Fixed32
+Overflow, increasing precision of f_angular_cross_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-673.0315240696073, 673.0315240696073]
+prec: Fixed16
+first eval id: new_f_angular_1_2
+first eval value: (new_f_angular_temp_1_2 + f_angular_cross_1_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_f_angular_1_2, new_f_angular_temp_1_2, f_angular_cross_1_2)
+Overflow, increasing precision of new_f_angular_1_2 to Fixed32
+Overflow, increasing precision of new_f_angular_temp_1_2 to Fixed32
+Overflow, increasing precision of f_angular_cross_1_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132635.17578125, 132635.17578125]
+propagatedError: [-497.4429765017703, 497.4429765017703]
+prec: Fixed16
+first eval id: r_204_new_f_1_0
+first eval value: new_f_linear_1_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_204_new_f_1_0, new_f_linear_1_0)
+Overflow, increasing precision of r_204_new_f_1_0 to Fixed32
+Overflow, increasing precision of new_f_linear_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81788.6953125, 81788.6953125]
+propagatedError: [-309.85577220469713, 309.85577220469713]
+prec: Fixed16
+first eval id: r_204_new_f_1_1
+first eval value: new_f_linear_1_1
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_204_new_f_1_1, new_f_linear_1_1)
+Overflow, increasing precision of r_204_new_f_1_1 to Fixed32
+Overflow, increasing precision of new_f_linear_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132635.17578125, 132635.17578125]
+propagatedError: [-497.4429765017703, 497.4429765017703]
+prec: Fixed16
+first eval id: r_204_new_f_1_2
+first eval value: new_f_linear_1_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_204_new_f_1_2, new_f_linear_1_2)
+Overflow, increasing precision of r_204_new_f_1_2 to Fixed32
+Overflow, increasing precision of new_f_linear_1_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-673.0315240696073, 673.0315240696073]
+prec: Fixed16
+first eval id: r_204_new_f_1_3
+first eval value: new_f_angular_1_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_204_new_f_1_3, new_f_angular_1_0)
+Overflow, increasing precision of r_204_new_f_1_3 to Fixed32
+Overflow, increasing precision of new_f_angular_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03125, 101317.03125]
+propagatedError: [-468.04471872607246, 468.04471872607246]
+prec: Fixed16
+first eval id: r_204_new_f_1_4
+first eval value: new_f_angular_1_1
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_204_new_f_1_4, new_f_angular_1_1)
+Overflow, increasing precision of r_204_new_f_1_4 to Fixed32
+Overflow, increasing precision of new_f_angular_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.015625, 144619.015625]
+propagatedError: [-673.0315240696073, 673.0315240696073]
+prec: Fixed16
+first eval id: r_204_new_f_1_5
+first eval value: new_f_angular_1_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(r_204_new_f_1_5, new_f_angular_1_2)
+Overflow, increasing precision of r_204_new_f_1_5 to Fixed32
+Overflow, increasing precision of new_f_angular_1_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132635.17578125, 132635.17578125]
+propagatedError: [-497.4487501813688, 497.4487501813688]
+prec: Fixed16
+first eval id: new_data_f_parent_1_0
+first eval value: (f_rnea_firstpass0_0 + r_204_new_f_1_0)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_1_0, f_rnea_firstpass0_0, r_204_new_f_1_0)
+Overflow, increasing precision of new_data_f_parent_1_0 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass0_0 to Fixed32
+Overflow, increasing precision of r_204_new_f_1_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-81788.79161950201, 81788.79161950201]
+propagatedError: [-309.86630115698637, 309.86630115698637]
+prec: Fixed16
+first eval id: new_data_f_parent_1_1
+first eval value: (f_rnea_firstpass0_1 + r_204_new_f_1_1)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_1_1, f_rnea_firstpass0_1, r_204_new_f_1_1)
+Overflow, increasing precision of new_data_f_parent_1_1 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass0_1 to Fixed32
+Overflow, increasing precision of r_204_new_f_1_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-132586.4133682251, 132683.9381942749]
+propagatedError: [-497.466136996013, 497.466136996013]
+prec: Fixed16
+first eval id: new_data_f_parent_1_2
+first eval value: (f_rnea_firstpass0_2 + r_204_new_f_1_2)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_1_2, f_rnea_firstpass0_2, r_204_new_f_1_2)
+Overflow, increasing precision of new_data_f_parent_1_2 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass0_2 to Fixed32
+Overflow, increasing precision of r_204_new_f_1_2 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.04985818762, 144619.04985818762]
+propagatedError: [-673.032670937886, 673.032670937886]
+prec: Fixed16
+first eval id: new_data_f_parent_1_3
+first eval value: (f_rnea_firstpass0_3 + r_204_new_f_1_3)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_1_3, f_rnea_firstpass0_3, r_204_new_f_1_3)
+Overflow, increasing precision of new_data_f_parent_1_3 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass0_3 to Fixed32
+Overflow, increasing precision of r_204_new_f_1_3 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.48534934968, 101317.10744064301]
+propagatedError: [-468.049255482895, 468.049255482895]
+prec: Fixed16
+first eval id: new_data_f_parent_1_4
+first eval value: (f_rnea_firstpass0_4 + r_204_new_f_1_4)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_1_4, f_rnea_firstpass0_4, r_204_new_f_1_4)
+Overflow, increasing precision of new_data_f_parent_1_4 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass0_4 to Fixed32
+Overflow, increasing precision of r_204_new_f_1_4 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.06158318865, 144619.06158318865]
+propagatedError: [-673.0323835883281, 673.0323835883281]
+prec: Fixed16
+first eval id: new_data_f_parent_1_5
+first eval value: (f_rnea_firstpass0_5 + r_204_new_f_1_5)
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(new_data_f_parent_1_5, f_rnea_firstpass0_5, r_204_new_f_1_5)
+Overflow, increasing precision of new_data_f_parent_1_5 to Fixed32
+Overflow, increasing precision of f_rnea_firstpass0_5 to Fixed32
+Overflow, increasing precision of r_204_new_f_1_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.06158318865, 144619.06158318865]
+propagatedError: [-673.0323835883281, 673.0323835883281]
+prec: Fixed16
+first eval id: data_tau_temp_0
+first eval value: new_data_f_parent_1_5
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(data_tau_temp_0, new_data_f_parent_1_5)
+Overflow, increasing precision of data_tau_temp_0 to Fixed32
+Overflow, increasing precision of new_data_f_parent_1_5 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-144619.06158318865, 144619.06158318865]
+propagatedError: [-673.0323835883281, 673.0323835883281]
+prec: Fixed16
+first eval id: data_tau_0
+first eval value: data_tau_temp_0
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(data_tau_0, data_tau_temp_0)
+Overflow, increasing precision of data_tau_0 to Fixed32
+Overflow, increasing precision of data_tau_temp_0 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-101317.03138862364, 101317.03138862364]
+propagatedError: [-449.2727032462272, 449.2727032462272]
+prec: Fixed16
+first eval id: data_tau_1
+first eval value: data_tau_temp_1
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(data_tau_1, data_tau_temp_1)
+Overflow, increasing precision of data_tau_1 to Fixed32
+Overflow, increasing precision of data_tau_temp_1 to Fixed32
+Overflow range: [-32768.0, 32767.0]
+OverflowException in computeNewError
+range: [-43299.56278061867, 43299.56278061867]
+propagatedError: [-195.22716562701044, 195.22716562701044]
+prec: Fixed16
+first eval id: data_tau_2
+first eval value: data_tau_temp_2
+stack trace of first eval:
+OverflowFix in interval roundoff
+List(data_tau_2, data_tau_temp_2)
+Overflow, increasing precision of data_tau_2 to Fixed32
+Overflow, increasing precision of data_tau_temp_2 to Fixed32
+[[34m  Info  [0m] 
+[[34m  Info  [0m] Starting Info phase
+[[34m  Info  [0m] rnea
+[[33mWarning [0m]   Absolute error: 19.004842087275392. Error bound is not satisfied!
+[[34m  Info  [0m]   Real range:     [-4289.407110512257, 4289.407110512257]
+[[34m  Info  [0m] 
+[[34m  Info  [0m] Starting Code generation phase
+[[34m  Info  [0m] time: 
+[[34m  Info  [0m] Code generation:     89 ms, Info:      2 ms, Dataflow error:  67922 ms, TAC transformer:      3 ms, Constant transformer:      6 ms, Specs processing:      9 ms, Scala extraction:   1157 ms, total:  69189 ms
