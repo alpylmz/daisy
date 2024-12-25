@@ -52,7 +52,7 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
   val minimumIntervalSize = 1.1
   val epsilonRes = 0.1
   val maxThreads = 64
-  val minimumVariableCount = 100
+  val minimumVariableCount = 2
   val semaphore = new Semaphore(maxThreads)
 
   /* 
@@ -463,8 +463,8 @@ object MixedPrecisionOptimizationPhase extends DaisyPhase with CostFunctions
 
                   val (tpeconfig, prec) = (deltaDebuggingSearch(ctx, body, targetError, fnc.params, costFnc,
                     //asd
-                    computeAbsErrorInDiffIntervals(ctx, prg, body, _, _, rangeMap, pathCond, approximate = true, targetError),
-                    //computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
+                    //computeAbsErrorInDiffIntervals(ctx, prg, body, _, _, rangeMap, pathCond, approximate = true, targetError),
+                    computeAbsError(body, _, _, rangeMap, pathCond, approximate = true),
                     consideredPrecisions),
                     lowestUniformPrec)
 

@@ -10,6 +10,9 @@ import tools._
 import FinitePrecision._
 import lang.TreeOps.allIDsOf
 
+import daisy.OverflowFixException
+
+
 /**
   Computes and stores intermediate ranges.
 
@@ -199,7 +202,7 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
           constantsPrecision = constPrecision,
           trackRoundoffErrs)
 
-        (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(Interval.maxAbs).toMap)
+        (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(Interval.maxAbs).toMap)        
 
       case "affine" =>
 
@@ -246,11 +249,44 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
     precisionMap: Map[Identifier, Precision], expr: Expr, constPrecision: Precision, precond: Expr):
     (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval]) = {
 
-    val (resRange, intermediateRanges) = computeRange(inputValMap, expr, precond)
+    try{
+      val (resRange, intermediateRanges) = computeRange(inputValMap, expr, precond)
 
-    val (resError, intermediateErrors) = computeErrors(intermediateRanges, inputErrorMap, precisionMap, expr,
-      constPrecision)
+      val (resError, intermediateErrors) = computeErrors(intermediateRanges, inputErrorMap, precisionMap, expr,
+        constPrecision)
+    
+      (resError, resRange, intermediateErrors, intermediateRanges)
+    }
+    catch {
+      case e: OverflowFixException => {
+        println("OverflowFix in interval roundoff")
+        println(e.identifiers)
+        // in this case, we will increase the precision of identifier by 1 in precisionMap
+        // iterate over all identifiers and increase precision by 1
+        var newPrecisionMap: Map[Identifier, Precision] = precisionMap
+        for (identifier <- e.identifiers) {
+          val currPrecision = precisionMap(identifier)
+          val incPrecision = currPrecision match {
+            case FixedPrecision(16) => FixedPrecision(32)
+            case FixedPrecision(32) => FixedPrecision(32) // TODO: this is wrong, but I believe it will fix the problem for now
+            case _ => {
+              throw new Exception("OverflowFix in interval roundoff, cannot increase precision: " + currPrecision)
+            }
+          }
+          println("Overflow, increasing precision of " + identifier + " to " + incPrecision)
+          newPrecisionMap = newPrecisionMap.map({case (id, prec) => if (id == identifier) (id -> incPrecision) else (id -> prec)})
+        }
 
-    (resError, resRange, intermediateErrors, intermediateRanges)
+        computeRoundoff(inputValMap, inputErrorMap, newPrecisionMap, expr, constPrecision, precond)
+      }
+      case e: OverflowException => {
+        println("Overflow in interval roundoff")
+        throw new Exception("Overflow in interval roundoff")
+      }
+      case e: Exception => {
+        println("Exception in interval roundoff")
+        throw new Exception("Exception in interval roundoff")
+      }
+    }
   }
 }

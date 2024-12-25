@@ -9,6 +9,7 @@ import lang.Identifiers._
 import FinitePrecision._
 import Rational._
 import daisy.utils.CachingMap
+import daisy.OverflowFixException
 
 trait RoundoffEvaluators extends RangeEvaluators {
 
@@ -137,6 +138,56 @@ trait RoundoffEvaluators extends RangeEvaluators {
     Constants are assumed to be all in one precision, given by the user.
 
    */
+
+   def getAllIdentifiers(expr: Expr): List[Identifier] = expr match {
+    case Variable(id) =>
+      List(id)
+
+    case Let(id, value, body) =>
+      id :: getAllIdentifiers(value) ::: getAllIdentifiers(body)
+
+    case RealLiteral(_) | Int32Literal(_) | FinitePrecisionLiteral(_, _, _) =>
+      Nil
+
+    case Plus(lhs, rhs)     => getAllIdentifiers(lhs) ::: getAllIdentifiers(rhs)
+    case Minus(lhs, rhs)    => getAllIdentifiers(lhs) ::: getAllIdentifiers(rhs)
+    case Times(lhs, rhs)    => getAllIdentifiers(lhs) ::: getAllIdentifiers(rhs)
+    case FMA(f1, f2, sum)   => getAllIdentifiers(f1) ::: getAllIdentifiers(f2) ::: getAllIdentifiers(sum)
+    case Division(lhs, rhs) => getAllIdentifiers(lhs) ::: getAllIdentifiers(rhs)
+    case IntPow(base, _)    => getAllIdentifiers(base)
+    case UMinus(t)          => getAllIdentifiers(t)
+    case Sqrt(t)            => getAllIdentifiers(t)
+    case Sin(t)             => getAllIdentifiers(t)
+    case Cos(t)             => getAllIdentifiers(t)
+    case Tan(t)             => getAllIdentifiers(t)
+    case Asin(t)            => getAllIdentifiers(t)
+    case Acos(t)            => getAllIdentifiers(t)
+    case Atan(t)            => getAllIdentifiers(t)
+    case Exp(t)             => getAllIdentifiers(t)
+    case Log(t)             => getAllIdentifiers(t)
+
+    // Approx(...) has two Expr subfields (original, t)
+    case Approx(original, t, _, _, _, _) =>
+      getAllIdentifiers(original) ::: getAllIdentifiers(t)
+
+    // IfExpr(cond, thenn, elze) 
+    case IfExpr(cond, thenn, elze) =>
+      getAllIdentifiers(cond) ::: getAllIdentifiers(thenn) ::: getAllIdentifiers(elze)
+
+    // Cast(t, FinitePrecisionType(...))
+    case Cast(t, _) =>
+      getAllIdentifiers(t)
+
+    // ApproxPoly(orig, _, fncId, totalError)
+    case ApproxPoly(orig, _, fncId, _) =>
+      // Collect any identifiers in `orig` plus the function identifier itself
+      getAllIdentifiers(orig) :+ fncId
+
+    // Anything not matched explicitly:
+    case _ => Nil
+  }
+
+
   def evalRoundoff[T <: RangeArithmetic[T]](
     expr: Expr,
     range: Map[(Expr, PathCond), Interval],
@@ -153,14 +204,34 @@ trait RoundoffEvaluators extends RangeEvaluators {
     precomputedIntermedErrs: CachingMap[(Expr, PathCond), (T, Precision)] = CachingMap.empty[(Expr, PathCond), (T, Precision)]()
     ): (T, Map[(Expr, PathCond), T]) = {
 
+    //println("evalRoundoff precision: " + precision)
+    //println("precomputedIntermedErrs: " + precomputedIntermedErrs)
 
     val intermediateErrors = if (precomputedIntermedErrs.nonEmpty) precomputedIntermedErrs else new CachingMap[(Expr, PathCond), (T, Precision)]
+
+    //println("intermediateErrors: " + intermediateErrors)
 
     for ((id, err) <- freeVarsError){
       intermediateErrors.put((Variable(id), emptyPath), (err, precision(id)))
     }
 
-    def computeNewError(range: Interval, propagatedError: T, prec: Precision): (T, Precision) = _computeNewError(range, propagatedError, prec, prec.absRoundoff)
+    //println("intermediateErrors2: " + intermediateErrors)
+
+    def computeNewError(range: Interval, propagatedError: T, prec: Precision): (T, Precision) = {
+      
+      try{
+        _computeNewError(range, propagatedError, prec, prec.absRoundoff)
+      }
+      catch{
+        case e: OverflowException => {
+          println("\nOverflowException in computeNewError")
+          println("range: " + range)
+          println("propagatedError: " + propagatedError)
+          println("prec: " + prec)
+          throw e
+        }
+      }
+    }
 
     def computeNewErrorTranscendental(range: Interval, propagatedError: T, prec: Precision): (T, Precision) = _computeNewError(range, propagatedError, prec, prec.absTranscendentalRoundoff)
 
@@ -467,19 +538,55 @@ trait RoundoffEvaluators extends RangeEvaluators {
 
         (newError, prec)
 
-      case x @ (Let(id, value, body), path) =>
-        val (valueError, valuePrec) = eval(value, path)
 
-        val idPrec = precision(id)
-        val error = if (idPrec < valuePrec) { // we need to cast down
-          val valueRange = range(value, path)
-          computeNewError(valueRange, valueError, idPrec)._1
-        } else {
-          valueError
+      case x @ (Let(id, value, body), path) =>
+        try{
+          val (valueError, valuePrec) = eval(value, path)
+
+          //println("let id: " + id)
+          //println("let value: " + value)
+          val idPrec = precision(id)
+          //println("checking if")
+          val error = if (idPrec < valuePrec) { // we need to cast down
+            val valueRange = range(value, path)
+            computeNewError(valueRange, valueError, idPrec)._1
+          } else {
+            valueError
+          }
+          //println("putting intermediate error")
+          // TODO: changeeee!!!!!!!!!!!!!!!!!
+          intermediateErrors.put((Variable(id), path), (error, precision(id))) // no problem as identifiers are unique
+          //println("let first finished")
+        }
+        catch{
+          case e: OverflowException => {
+            println("first eval id: " + id)
+            println("first eval value: " + value)
+            println("stack trace of first eval:")
+            //e.printStackTrace()
+            val identifiers = List(id)
+            // check all values, and if you find an identifier, add it to the list
+            val identifiers2 = getAllIdentifiers(value)
+            val allIdentifiers = identifiers ++ identifiers2
+            throw new OverflowFixException(allIdentifiers)
+          }
         }
 
-        intermediateErrors.put((Variable(id), path), (error, valuePrec)) // no problem as identifiers are unique
-        eval(body, path)
+        try{
+          eval(body, path)
+        }
+        catch {
+          case e: OverflowException => {
+            println("second eval id: " + id)
+            println("second eval value: " + value)
+            //e.printStackTrace()
+            val identifiers = List(id)
+            // check all values, and if you find an identifier, add it to the list
+            val identifiers2 = getAllIdentifiers(value)
+            val allIdentifiers = identifiers ++ identifiers2
+            throw new OverflowFixException(allIdentifiers)
+          }
+        }
 
       case (Variable(id), path) =>
         if (path.nonEmpty)
