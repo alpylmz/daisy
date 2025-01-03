@@ -649,28 +649,29 @@ object CodeGenerationPhase extends DaisyPhase {
         
         // determine how much to shift left or right
         val fAligned = math.max(fLhs, fRhs)
+        var curr_fp_point = math.min(fLhs, fRhs)
         val (newLhs, newRhs) = if(fLhs < fAligned) {
-          (LeftShift(Cast(_toFPCode(lhs, path), Int64Type), (fAligned - fLhs)), _toFPCode(rhs, path))
+          (_toFPCode(lhs, path), RightShift(_toFPCode(rhs, path), (fAligned - fLhs)))
         }
         else if(fRhs < fAligned) {
-          (_toFPCode(lhs, path), LeftShift(Cast(_toFPCode(rhs, path), Int64Type), (fAligned - fRhs)))
+          (RightShift(_toFPCode(lhs, path), (fAligned - fRhs)), _toFPCode(rhs, path))
         }
         else {
           (_toFPCode(lhs, path), _toFPCode(rhs, path))
         }
 
-        // fractional bits result
+        // if fAligned is different then fRes, we need to shift the result
         val fRes = getFractionalBits(x, path)
-        // shift result
-        if (fAligned == fRes) {
-          Plus(newLhs, newRhs)
-        } else if (fRes < fAligned) {
-          RightShift(Plus(newLhs, newRhs), (fAligned - fRes))
-        } else { // (fAligned < fRes) {
-          // TODO: this sounds funny. does this ever happen?
-          //reporter.warning("funny shifting condition is happening")
-          LeftShift(Plus(newLhs, newRhs), (fRes - fAligned))
+        if(curr_fp_point < fRes) {
+          RightShift(Plus(newLhs, newRhs), (fRes - curr_fp_point))
         }
+        else if(curr_fp_point > fRes) {
+          RightShift(Plus(newLhs, newRhs), (curr_fp_point - fRes))
+        }
+        else {
+          Plus(newLhs, newRhs)
+        }
+        
         
 
       case x @ Minus(lhs, rhs) =>
@@ -678,29 +679,31 @@ object CodeGenerationPhase extends DaisyPhase {
         val fRhs = getFractionalBits(rhs, path)
         
         // determine how much to shift left or right
+        
         val fAligned = math.max(fLhs, fRhs)
+        var curr_fp_point = math.min(fLhs, fRhs)
         val (newLhs, newRhs) = if(fLhs < fAligned) {
-          (LeftShift(Cast(_toFPCode(lhs, path), Int64Type), (fAligned - fLhs)), _toFPCode(rhs, path))
+          (_toFPCode(lhs, path), RightShift(_toFPCode(rhs, path), (fAligned - fLhs)))
         }
         else if(fRhs < fAligned) {
-          (_toFPCode(lhs, path), LeftShift(Cast(_toFPCode(rhs, path), Int64Type), (fAligned - fRhs)))
+          (RightShift(_toFPCode(lhs, path), (fAligned - fRhs)), _toFPCode(rhs, path))
         }
         else {
           (_toFPCode(lhs, path), _toFPCode(rhs, path))
         }
 
-        // fractional bits result
+        // if fAligned is different then fRes, we need to shift the result
         val fRes = getFractionalBits(x, path)
-        // shift result
-        if (fAligned == fRes) {
-          Minus(newLhs, newRhs)
-        } else if (fRes < fAligned) {
-          RightShift(Minus(newLhs, newRhs), (fAligned - fRes))
-        } else { // (fAligned < fRes) {
-          // TODO: this sounds funny. does this ever happen?
-          //reporter.warning("funny shifting condition is happening")
-          LeftShift(Minus(newLhs, newRhs), (fRes - fAligned))
+        if(curr_fp_point < fRes) {
+          RightShift(Minus(newLhs, newRhs), (fRes - curr_fp_point))
         }
+        else if(curr_fp_point > fRes) {
+          RightShift(Minus(newLhs, newRhs), (curr_fp_point - fRes))
+        }
+        else {
+          Minus(newLhs, newRhs)
+        }
+
         
 
       case x @ Times(lhs, rhs) =>
