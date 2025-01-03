@@ -613,9 +613,9 @@ object CodeGenerationPhase extends DaisyPhase {
   def toFixedPointCode(expr: Expr, format: FixedPrecision, intermRanges: Map[(Expr, PathCond), Interval],
     intermAbsErrors: Map[(Expr, PathCond), Rational]): Expr = {
     val newType = format match {
-      case FixedPrecision(x) if x <= 8 => Int16Type
-      case FixedPrecision(x) if 8 < x && x <= 16 => Int32Type
-      case FixedPrecision(x) if 16 < x && x <= 32 => Int64Type
+      case FixedPrecision(x) if x <= 8 => Int16Type // TODO: Add Int8Type
+      case FixedPrecision(x) if 8 < x && x <= 16 => Int16Type
+      case FixedPrecision(x) if 16 < x && x <= 32 => Int32Type
       //case FixedPrecision(x) if x > 32 => Long // todo ???
     }
 
@@ -633,9 +633,9 @@ object CodeGenerationPhase extends DaisyPhase {
       case RealLiteral(r) => // TODO: translate constant
         val f = format.fractionalBits(r)
         format match {
-          case FixedPrecision(x) if x <= 8 => Int16Literal((r * Rational.fromDouble(math.pow(2, f))).roundToInt)
-          case FixedPrecision(x) if 8 < x && x <= 16 => Int32Literal((r * Rational.fromDouble(math.pow(2, f))).roundToInt)
-          case FixedPrecision(x) if 16 < x && x <= 32 => Int64Literal((r * Rational.fromDouble(math.pow(2, f))).roundToLong)
+          case FixedPrecision(x) if x <= 8 => Int16Literal((r * Rational.fromDouble(math.pow(2, f))).roundToInt) // TODO: Add Int8Literal. Since this line is not used for now, it does not affect anything
+          case FixedPrecision(x) if 8 < x && x <= 16 => Int16Literal((r * Rational.fromDouble(math.pow(2, f))).roundToInt)
+          case FixedPrecision(x) if 16 < x && x <= 32 => Int32Literal((r * Rational.fromDouble(math.pow(2, f))).roundToInt)
         }
 
       case UMinus(t) => UMinus(_toFPCode(t, path))
@@ -646,21 +646,18 @@ object CodeGenerationPhase extends DaisyPhase {
       case x @ Plus(lhs, rhs) =>
         val fLhs = getFractionalBits(lhs, path)
         val fRhs = getFractionalBits(rhs, path)
-
+        
         // determine how much to shift left or right
         val fAligned = math.max(fLhs, fRhs)
-        val newLhs =
-          if (fLhs < fAligned) {
-            LeftShift(_toFPCode(lhs, path), (fAligned - fLhs))
-          } else {
-            _toFPCode(lhs, path)
-          }
-        val newRhs =
-          if (fRhs < fAligned) {
-            LeftShift(_toFPCode(rhs, path), (fAligned - fRhs))
-          } else {
-            _toFPCode(rhs, path)
-          }
+        val (newLhs, newRhs) = if(fLhs < fAligned) {
+          (LeftShift(Cast(_toFPCode(lhs, path), Int64Type), (fAligned - fLhs)), _toFPCode(rhs, path))
+        }
+        else if(fRhs < fAligned) {
+          (_toFPCode(lhs, path), LeftShift(Cast(_toFPCode(rhs, path), Int64Type), (fAligned - fRhs)))
+        }
+        else {
+          (_toFPCode(lhs, path), _toFPCode(rhs, path))
+        }
 
         // fractional bits result
         val fRes = getFractionalBits(x, path)
@@ -673,28 +670,24 @@ object CodeGenerationPhase extends DaisyPhase {
           // TODO: this sounds funny. does this ever happen?
           //reporter.warning("funny shifting condition is happening")
           LeftShift(Plus(newLhs, newRhs), (fRes - fAligned))
-
         }
+        
 
       case x @ Minus(lhs, rhs) =>
-        // fractional bits from lhs
         val fLhs = getFractionalBits(lhs, path)
         val fRhs = getFractionalBits(rhs, path)
-
+        
         // determine how much to shift left or right
         val fAligned = math.max(fLhs, fRhs)
-        val newLhs =
-          if (fLhs < fAligned) {
-            LeftShift(_toFPCode(lhs, path), (fAligned - fLhs))
-          } else {
-            _toFPCode(lhs, path)
-          }
-        val newRhs =
-          if (fRhs < fAligned) {
-            LeftShift(_toFPCode(rhs, path), (fAligned - fRhs))
-          } else {
-            _toFPCode(rhs, path)
-          }
+        val (newLhs, newRhs) = if(fLhs < fAligned) {
+          (LeftShift(Cast(_toFPCode(lhs, path), Int64Type), (fAligned - fLhs)), _toFPCode(rhs, path))
+        }
+        else if(fRhs < fAligned) {
+          (_toFPCode(lhs, path), LeftShift(Cast(_toFPCode(rhs, path), Int64Type), (fAligned - fRhs)))
+        }
+        else {
+          (_toFPCode(lhs, path), _toFPCode(rhs, path))
+        }
 
         // fractional bits result
         val fRes = getFractionalBits(x, path)
@@ -708,24 +701,42 @@ object CodeGenerationPhase extends DaisyPhase {
           //reporter.warning("funny shifting condition is happening")
           LeftShift(Minus(newLhs, newRhs), (fRes - fAligned))
         }
+        
 
       case x @ Times(lhs, rhs) =>
+        // 1) Convert to FP code (so they have the correct “fixed-point bits” in them)
+        val lhsCode = _toFPCode(lhs, path)
+        val rhsCode = _toFPCode(rhs, path)
 
-        val mult = Times(_toFPCode(lhs, path), _toFPCode(rhs, path))
-        val fMult = getFractionalBits(lhs, path) + getFractionalBits(rhs, path)
-
-        // fractional bits result
+        // 2) Figure out how many fractional bits each side has, and how many we want in the result
+        val fLhs = getFractionalBits(lhs, path)
+        val fRhs = getFractionalBits(rhs, path)
         val fRes = getFractionalBits(x, path)
-        // shift result
-        if (fMult == fRes) {
-          mult
-        } else if (fRes < fMult) {
-          RightShift(mult, (fMult - fRes))
-        } else { // (fAligned < fRes) {
-          // TODO: this sounds funny. does this ever happen?
-          //reporter.warning("funny shifting condition is happening")
-          LeftShift(mult, (fRes - fMult))
-        }
+
+        // 3) Cast to 64-bit type so we have enough room for the product
+        val lhs64 = Cast(lhsCode, Int64Type)
+        val rhs64 = Cast(rhsCode, Int64Type)
+
+        // 4) Multiply in 64-bit
+        val product = Times(lhs64, rhs64)
+
+        // 5) Shift by (fLhs + fRhs - fRes)
+        val totalFraction = fLhs + fRhs
+        val shiftAmount   = totalFraction - fRes
+
+        val shifted =
+          if (shiftAmount > 0) {
+            RightShift(product, shiftAmount) // possibly arithmetic shift if signed
+          } else if (shiftAmount < 0) {
+            LeftShift(product, -shiftAmount)
+          } else {
+            product
+          }
+
+        // 6) Cast back to the final fixed-point type
+        Cast(shifted, newType)
+
+
 
       case x @ Division(lhs, rhs) =>
         val fLhs = getFractionalBits(lhs, path)
