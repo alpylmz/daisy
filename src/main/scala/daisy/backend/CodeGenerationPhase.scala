@@ -660,7 +660,6 @@ object CodeGenerationPhase extends DaisyPhase {
           (_toFPCode(lhs, path), _toFPCode(rhs, path))
         }
 
-        // if fAligned is different then fRes, we need to shift the result
         val fRes = getFractionalBits(x, path)
         if(curr_fp_point < fRes) {
           RightShift(Plus(newLhs, newRhs), (fRes - curr_fp_point))
@@ -692,7 +691,6 @@ object CodeGenerationPhase extends DaisyPhase {
           (_toFPCode(lhs, path), _toFPCode(rhs, path))
         }
 
-        // if fAligned is different then fRes, we need to shift the result
         val fRes = getFractionalBits(x, path)
         if(curr_fp_point < fRes) {
           RightShift(Minus(newLhs, newRhs), (fRes - curr_fp_point))
