@@ -3,14 +3,24 @@
 package daisy
 package analysis
 
+import lang.Trees
 import lang.Trees._
 import lang.Identifiers._
 import lang.Types.RealType
 import tools._
 import FinitePrecision._
 import lang.TreeOps.allIDsOf
+import daisy.lang.Identifiers.Identifier
+import daisy.lang.Trees._
+import daisy.opt.MixedPrecisionOptimizationPhase.computeAbsErrorInDiffIntervalsReturnTuple
 
-import daisy.OverflowFixException
+
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success}
+import java.util.concurrent.Semaphore
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
@@ -58,12 +68,14 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
 
     val fncsToConsider = if (ctx.hasFlag("approx")) functionsToConsider(ctx, prg).filter(_.returnType == RealType)
       else functionsToConsider(ctx, prg)
-
+    ctx.reporter.info("initialized some variables")
     // returns (abs error, result range, interm. errors, interm. ranges)
     val res: Map[Identifier, (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval], Map[Identifier, Precision])] =
       fncsToConsider.map({ fnc =>
 
-      val inputValMap: Map[Identifier, Interval] = ctx.specInputRanges(fnc.id)
+      var inputValMap: Map[Identifier, Interval] = ctx.specInputRanges(fnc.id)
+      // sort inputValMap by the variable name
+      inputValMap = inputValMap.toList.sortBy(_._1.name).toMap
 
       val fncBody = fnc.body.get
 
@@ -103,7 +115,7 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
             val precisionMap: Map[Identifier, Precision] = allIDsOf(fnc.body.get).map(id => (id -> prec)).toMap
 
             res = computeRoundoff(inputValMap, inputErrorMap, precisionMap, fncBody,
-              prec, fnc.precondition.get) // replaced ctx.specAdditionalConstraints(fnc.id)
+              prec, fnc.precondition.get, ctx) // replaced ctx.specAdditionalConstraints(fnc.id)
 
             res._1 <= targetError
           } catch {
@@ -138,12 +150,45 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
         uniformPrecisions = uniformPrecisions + (fnc.id -> uniformPrecision) // so that this info is available in codegen
 
         val precond = fnc.precondition.get // replaced ctx.specAdditionalConstraints(fnc.id)
-        val res = computeRoundoff(inputValMap, inputErrorMap, precisionMap, fncBody,
-          uniformPrecision, precond)
+        
+        reporter.info("starting roundoff at time: " + System.currentTimeMillis())
+        val res = computeRoundoffDivisionByZero(inputValMap, inputErrorMap, precisionMap, fncBody,
+          uniformPrecision, precond, ctx)
+        reporter.info("finished roundoff at time: " + System.currentTimeMillis())
+        // close the execution context
+        //executionContext.shutdown()
+        reporter.info("res: " + res._1)
+        reporter.info("res: " + res._2)
         val result: (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval], Map[Identifier, Precision]) = (res._1, res._2, res._3, res._4, precisionMap)
         (fnc.id -> result)
+      
       }
     }).toMap
+
+    /*
+    (
+      daisy.lang.Identifiers.Identifier, 
+      (
+        daisy.tools.Rational, 
+        daisy.tools.Interval, 
+        scala.collection.immutable.Map[_ <: (daisy.lang.Trees.Expr, daisy.PathCond), daisy.tools.Rational], 
+        Map[(daisy.lang.Trees.Expr, daisy.PathCond),daisy.tools.Interval], 
+        Map[daisy.lang.Identifiers.Identifier,daisy.tools.FinitePrecision.Precision])) <:< 
+    (
+      daisy.lang.Identifiers.Identifier, 
+      (
+        daisy.tools.Rational, 
+        daisy.tools.Interval, 
+        Map[(daisy.lang.Trees.Expr, daisy.PathCond),daisy.tools.Rational], 
+        Map[(daisy.lang.Trees.Expr, daisy.PathCond),daisy.tools.Interval], 
+        Map[daisy.lang.Identifiers.Identifier,daisy.tools.FinitePrecision.Precision]
+      )
+    )
+    */
+    ///println("inputValMap: ")
+    ///println(inputValMap)
+    ///// precond is not used in interval anyways
+    ///val (total_range, newRangeMap) = computeRange(inputValMap, fncBody, precond)
 
     (ctx.copy(specInputPrecisions = ctx.specInputPrecisions ++ res.mapValues(_._5).toMap,
       uniformPrecisions = ctx.uniformPrecisions ++ uniformPrecisions,
@@ -193,6 +238,7 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
 
     (errorMethod: @unchecked) match {
       case "interval" =>
+        /*
         val (resRoundoff, allErrors) = evalRoundoff[Interval](expr, intermediateRanges,
           precisionMap,
           inputErrorMap.mapValues(Interval.+/-).toMap,
@@ -202,10 +248,22 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
           constantsPrecision = constPrecision,
           trackRoundoffErrs)
 
-        (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(Interval.maxAbs).toMap)        
+        (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(Interval.maxAbs).toMap)
+        */
+        
+        val (resRoundoff, allErrors) = evalRoundoffInterval(expr, intermediateRanges,
+          precisionMap,
+          inputErrorMap.mapValues(Interval.+/-).toMap,
+          zeroError = Interval.zero,
+          fromError = Interval.+/-,
+          interval2T = Interval.apply,
+          constantsPrecision = constPrecision,
+          trackRoundoffErrs)
 
+        (Interval.maxAbs(resRoundoff.toInterval), allErrors.mapValues(Interval.maxAbs).toMap)
+      
       case "affine" =>
-
+        println("computing roundoff errors with affine forms")
         val (resRoundoff, allErrors) = evalRoundoff[AffineForm](expr, intermediateRanges,
           precisionMap,
           inputErrorMap.mapValues(AffineForm.+/-).toMap,
@@ -245,48 +303,336 @@ object DataflowPhase extends DaisyPhase with RoundoffEvaluators with IntervalSub
     }
   }
 
-  def computeRoundoff(inputValMap: Map[Identifier, Interval], inputErrorMap: Map[Identifier, Rational],
-    precisionMap: Map[Identifier, Precision], expr: Expr, constPrecision: Precision, precond: Expr):
+  def expressionGetFinalLet(expr: Expr): Expr = {
+    expr match {
+      case Let(id, value, body) => expressionGetFinalLet(body)
+      case _ => expr
+    }
+  }
+
+  def takeCombinations(
+    lst: List[List[Expr]]
+  ): List[Map[Identifier, Interval]] = {
+
+    // Step 1: convert each sub-list of Expr into a List of Map(id -> Interval(...))
+    val listOfMapLists: List[List[Map[Identifier, Interval]]] =
+      lst.map { subList =>
+        subList.map {
+          case And(conds) =>
+            // Expecting conds of length 2:  a(0) is GreaterThan(...), a(1) is LessThan(...)
+            val (id, lb) = conds(0) match {
+              case GreaterThan(Variable(id), RealLiteral(value)) => (id, value)
+            }
+            val ub = conds(1) match {
+              case LessThan(_, RealLiteral(value)) => value
+            }
+            Map(id -> Interval(lb, ub))
+        }
+      }
+
+    // If there's nothing, return empty
+    if (listOfMapLists.isEmpty) return Nil
+
+    // Step 2: combine them step by step
+    var result: List[Map[Identifier, Interval]] = List(Map.empty)
+
+    for (maps <- listOfMapLists) {
+      // Build up new partial results in a buffer
+      val newResult = scala.collection.mutable.ListBuffer[Map[Identifier, Interval]]()
+      // For each existing combination, combine with every map in `maps`
+      for (oldCombo <- result; m <- maps) {
+        // Merge them (++ on Map is cheap for small maps, but can still allocate)
+        newResult += (oldCombo ++ m)
+      }
+      // Convert to a list at the end of this layer
+      result = newResult.toList
+    }
+
+    result
+  }
+
+
+
+  def inputValMaptoPrecondition(inputValMap: Map[Identifier, Interval]): Expr = {
+    // Just read all intervals and add to the Expr as And()s
+    // I will try to do that now
+    var preconditions = List[Expr]()
+    inputValMap.foreach(x => {
+      val id = x._1
+      val interval = x._2
+      //preconditions = preconditions :+ And(GreaterThan(Variable(id), RealLiteral(interval.xlo)), LessThan(Variable(id), RealLiteral(interval.xhi)))
+      preconditions = preconditions :+ GreaterThan(Variable(id), RealLiteral(interval.xlo))
+      preconditions = preconditions :+ LessThan(Variable(id), RealLiteral(interval.xhi))
+    })
+    //reporter.info("preconditions_inside: ")
+    //reporter.info(preconditions)
+    // the next step is somehow to combine all of these into one expression
+    // I will try to do that now, it will be like flatten
+    // Use Seq to flatten the list
+    var result = And(preconditions)
+
+    result
+  }
+
+  def calculateInputValMaps(precond: Expr, inputValMap: Map[Identifier, Interval]): List[Map[Identifier, Interval]] = {
+    val preconditions_list = precond match{
+      case Trees.And(a) => a
+    }
+
+    val inputValMapSorted = inputValMap.toList.sortBy(_._1.name)
+    val () = println("Dividing the inputValMap: " + inputValMapSorted)
+
+    val minimumIntervalSize = 0.1
+    var i = 0
+    var preconditions = List[List[Expr]]()
+    var inputValMaps = List[Map[Identifier, Interval]]()
+    var less_than_min_count = 0
+    while(i < preconditions_list.length){
+      val lower_bound = preconditions_list(i)
+      val upper_bound = preconditions_list(i+1)
+      val lower_bound_value = lower_bound match {
+        case LessThan(_, value) => value match {
+          case RealLiteral(r) => r
+        }
+        case GreaterThan(_, value) => value match {
+          case RealLiteral(r) => r
+        }
+      }
+      val upper_bound_value = upper_bound match {
+        case LessThan(_, value) => value match {
+          case RealLiteral(r) => r
+        }
+        case GreaterThan(_, value) => value match {
+          case RealLiteral(r) => r
+        }
+      }
+      val var_id = lower_bound match {
+        case LessThan(id, _) => id
+        case GreaterThan(id, _) => id
+      }
+      //reporter.info("Lower bound value:")
+      //reporter.info(lower_bound_value)
+      //reporter.info("Upper bound value:")
+      //reporter.info(upper_bound_value)
+      if(upper_bound_value - lower_bound_value < minimumIntervalSize){
+        // if the difference is too small, we can skip this one, but other variables still may need to be subdivided
+        preconditions = preconditions :+ List(
+          And(
+            GreaterThan(var_id, RealLiteral(lower_bound_value)),
+            LessThan(var_id, RealLiteral(upper_bound_value)),
+          ),
+        )
+        less_than_min_count = less_than_min_count + 1
+      }
+      else{
+        
+        preconditions = preconditions :+ List(
+          And(
+            GreaterThan(var_id, RealLiteral(lower_bound_value)),
+            LessThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+          ),
+          And(
+            GreaterThan(var_id, RealLiteral((upper_bound_value + lower_bound_value) / 2)),
+            LessThan(var_id, RealLiteral(upper_bound_value)),
+          ),
+        )
+      }
+      i = i + 2
+    }
+
+    println("Taking combinations")
+
+    inputValMaps = takeCombinations(preconditions)
+
+    println("Finished taking combinations")
+
+    // I am too lazy to solve the bug, if there is an element identical to inputValMap, remove it from inputValMaps
+    inputValMaps = inputValMaps.filter(x => x != inputValMap)
+    
+    // if the length of inputValMaps is 1, then we need to raise an exception
+    if(inputValMaps.length == 0){
+      // return dummy results with a big error
+      throw new Exception("Cannot solve DivisionByZeroException with inputValMap: " + inputValMap)
+    }
+
+    inputValMaps
+
+  }
+
+  def computeRoundoffDivisionByZero(inputValMap: Map[Identifier, Interval], inputErrorMap: Map[Identifier, Rational],
+    precisionMap: Map[Identifier, Precision], expr: Expr, constPrecision: Precision, precond: Expr, ctx: Context):
     (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval]) = {
 
+    var inputValMaps = List[Map[Identifier, Interval]]()
+    // divide no matter what
     try{
-      val (resRange, intermediateRanges) = computeRange(inputValMap, expr, precond)
+      inputValMaps = calculateInputValMaps(precond, inputValMap)
+      println("Done with calculateInputValMaps")
+    } catch {
+      // if you can't divide have only one inputValMap
+      case e: Exception => 
+        val (resRange, intermediateRanges) = computeRange(inputValMap, expr, precond)
 
-      val (resError, intermediateErrors) = computeErrors(intermediateRanges, inputErrorMap, precisionMap, expr,
-        constPrecision)
+        val (resError, intermediateErrors) = computeErrors(intermediateRanges, inputErrorMap, precisionMap, expr,
+          constPrecision)
+
+        val () = println("INFO: Successfull on minimal " + inputValMap)
     
-      (resError, resRange, intermediateErrors, intermediateRanges)
+        return (resError, resRange, intermediateErrors, intermediateRanges)
     }
-    catch {
-      case e: OverflowFixException => {
-        println("OverflowFix in interval roundoff")
-        println(e.identifiers)
-        // in this case, we will increase the precision of identifier by 1 in precisionMap
-        // iterate over all identifiers and increase precision by 1
-        var newPrecisionMap: Map[Identifier, Precision] = precisionMap
-        for (identifier <- e.identifiers) {
-          val currPrecision = precisionMap(identifier)
-          val incPrecision = currPrecision match {
-            case FixedPrecision(16) => FixedPrecision(32)
-            case FixedPrecision(32) => FixedPrecision(32) // TODO: this is wrong, but I believe it will fix the problem for now
-            case _ => {
-              throw new Exception("OverflowFix in interval roundoff, cannot increase precision: " + currPrecision)
-            }
-          }
-          println("Overflow, increasing precision of " + identifier + " to " + incPrecision)
-          newPrecisionMap = newPrecisionMap.map({case (id, prec) => if (id == identifier) (id -> incPrecision) else (id -> prec)})
-        }
+    //var results = List[(Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval])]()
 
-        computeRoundoff(inputValMap, inputErrorMap, newPrecisionMap, expr, constPrecision, precond)
+    val () = println("Starting threads for inputValMap: " + inputValMap)
+    // run the computations in parallel
+    val futureResults: List[Future[(Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval])]] = inputValMaps.map(inputValMapNew => {
+      Future {
+        try{
+          val temp_precond = inputValMaptoPrecondition(inputValMapNew)
+          val () = println("MaptoPrecond thread")
+          val (resRange, intermediateRanges) = computeRange(inputValMapNew, expr, temp_precond)
+          val () = println("Range thread")
+          val (resError, intermediateErrors) = computeErrors(intermediateRanges, inputErrorMap, precisionMap, expr,
+            constPrecision)
+    
+            val () = println("INFO: Successfull " + inputValMapNew)
+    
+          (resError, resRange, intermediateErrors, intermediateRanges)
+        } catch {
+          case e: DivisionByZeroException => 
+            // if there is a division by zero exception, return a big error
+            val () = println("DivisionByZeroException with inputValMap: " + inputValMapNew)
+            // return dummy results with a big error
+            (Rational(424242424), Interval(-424242424, 424242424), Map(), Map())
+        }
       }
-      case e: OverflowException => {
-        println("Overflow in interval roundoff")
-        throw new Exception("Overflow in interval roundoff")
+    })
+    
+    // wait for all the futures to complete
+    var results = Await.result(Future.sequence(futureResults), Duration.Inf)
+    val () = println("Finished threads for inputValMap: " + inputValMap)
+    
+    // Then, go over all the results. Find the exceptions, and recursively call the function
+    // with the new inputValMap
+    // if there is a division by zero exception, then we need to subdivide the inputValMap
+    // into smaller intervals
+    // then we need to call the function recursively with the new inputValMap
+    var j = 0
+    inputValMaps.map(inputValMapNew => {
+      val temp_precond = inputValMaptoPrecondition(inputValMapNew)
+      // is there a division by zero exception?
+      if(results(j)._1 == Rational(424242424)){
+        val () = println("Exception found in " + j)
+        // if there is a division by zero exception, then we need to subdivide the inputValMap
+        // into smaller intervals
+        // then we need to call the function recursively with the new inputValMap
+        val new_results = computeRoundoffDivisionByZero(inputValMapNew, inputErrorMap, precisionMap, expr, constPrecision, temp_precond, ctx)
+        val () = println("INFO: Successfully solved exception " + inputValMapNew)
+        results = results.updated(j, new_results)
       }
-      case e: Exception => {
-        println("Exception in interval roundoff")
-        throw new Exception("Exception in interval roundoff")
+      j = j + 1
+    })
+
+    // result is resError, ResRange, intermediateErrors, intermediateRanges
+
+    //println("finding max error")
+    // find the maximum error
+    var max_error = results(0)._1
+    var max_error_index = 0
+    for(i <- 1 until results.length){
+      //println("curr error: " + results(i)._1)
+      if(results(i)._1 > max_error){
+        max_error = results(i)._1
+        max_error_index = i
       }
     }
+    //println("max error: " + max_error)
+
+    //println("finding resRange")
+    // merge all resRanges
+    var resRange = results(0)._2
+    for(i <- 1 until results.length){
+      //println("curr resRange: " + results(i)._2)
+      resRange = resRange.union(results(i)._2)
+    }
+    //println("resRange: " + resRange)
+
+    // merge all intermediateErrors
+    var intermediateErrors = results(0)._3
+    for(i <- 1 until results.length){
+      // find the same keys, and store the maximum value
+      results(i)._3.foreach({ case (expr, error) =>
+        if(intermediateErrors.contains(expr)){
+          if(intermediateErrors(expr) < error){
+            intermediateErrors = intermediateErrors.updated(expr, error)
+          }
+        }
+        else{
+          intermediateErrors = intermediateErrors + (expr -> error)
+        }
+      })
+    }
+
+    // merge all intermediateRanges
+    //println("finding intermediateRanges")
+    var intermediateRanges = results(0)._4
+    for(i <- 1 until results.length){
+      // find the same keys, and take the union of the intervals
+      //println("curr intermediateRanges: " + results(i)._4)
+      results(i)._4.foreach({ case (expr, range) =>
+        if(intermediateRanges.contains(expr)){
+          intermediateRanges = intermediateRanges.updated(expr, intermediateRanges(expr).union(range))
+        }
+        else{
+          intermediateRanges = intermediateRanges + (expr -> range)
+        }
+      }) 
+    }
+    //println("intermediateRanges: ")
+    //println(intermediateRanges)
+    (max_error, resRange, intermediateErrors, intermediateRanges)
+    }
+
+  def computeRoundoff(inputValMap: Map[Identifier, Interval], inputErrorMap: Map[Identifier, Rational],
+    precisionMap: Map[Identifier, Precision], expr: Expr, constPrecision: Precision, precond: Expr, ctx: Context):
+    (Rational, Interval, Map[(Expr, PathCond), Rational], Map[(Expr, PathCond), Interval]) = {
+
+    val startTime = System.currentTimeMillis()
+    val (resRange, intermediateRanges) = computeRange(inputValMap, expr, precond)
+    ctx.reporter.info(s"Range computation took ${System.currentTimeMillis() - startTime} ms")
+
+    // print ranges
+    ctx.reporter.info("resRange: " + resRange)
+    intermediateRanges.foreach({ case (expr, range) =>
+      // if the expr is a let expression, print the last expression
+      // case match
+      expr match {
+        case (a, b) =>
+          val filtered_expr = expressionGetFinalLet(a)
+          filtered_expr match{
+            case Plus(_, _) => 
+            case Minus(_, _) => 
+            case Times(_, _) => 
+            case Division(_, _) => 
+            case FloatLiteral(_) => 
+            case _ => //ctx.reporter.info(s"$filtered_expr: $range")
+          }
+        case _ =>
+          //ctx.reporter.info(s"$expr: $range")
+      }
+      //ctx.reporter.info(s"$expr: $range")
+    })
+
+    // print curr time
+    ctx.reporter.info("Computing errors")
+
+    val errorStartTime = System.currentTimeMillis()
+    val (resError, intermediateErrors) = computeErrors(intermediateRanges, inputErrorMap, precisionMap, expr,
+      constPrecision)
+    ctx.reporter.info(s"Error computation took ${System.currentTimeMillis() - errorStartTime} ms")
+
+    // print errors
+    ctx.reporter.info("resError: " + resError)
+
+    (resError, resRange, intermediateErrors, intermediateRanges)
   }
 }
