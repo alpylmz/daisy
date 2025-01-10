@@ -110,7 +110,9 @@ object DataflowSubdivisionPhase extends DaisyPhase with Subdivision with Roundof
             })
             val precond = and(subIntExpr :+ addConstr: _*)
             val (absError, realRange, _intermErrors, _intermRanges) =
-              DataflowPhase.computeRoundoff(subInt, inputErrorMap, precisionMap, bodyReal, uniformPrecision, precond)
+              // or
+              // DataflowPhase.computeRoundoff(subInt, inputErrorMap, precisionMap, bodyReal, uniformPrecision, precond, ctx)
+              DataflowBackupPhase.computeRoundoff(subInt, inputErrorMap, precisionMap, bodyReal, uniformPrecision, precond)
 
             val relError: Option[Rational] = if (realRange.includes(Rational.zero)) {
               None
